@@ -1,44 +1,53 @@
-name: Build unsigned IPA
+name: Build Unsigned IPA
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-13
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - run: npm install
+      - name: Install dependencies
+        run: npm install
 
-      # Sinh thư mục ios/ và tự chạy pod install
-      - run: npx expo prebuild --platform ios --clean
+      - name: Prebuild iOS project
+        run: npx expo prebuild --platform ios --clean
 
-      - name: Build (không ký)
-        working-directory: ios
+      - name: Install CocoaPods
         run: |
-          xcodebuild \
-            -workspace XamReader.xcworkspace \
-            -scheme XamReader \
+          cd ios
+          pod install
+
+      - name: Build unsigned app
+        run: |
+          cd ios
+          xcodebuild -workspace *.xcworkspace \
+            -scheme * \
             -configuration Release \
             -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
 
-      - name: Đóng gói .ipa
-        working-directory: ios/build/Build/Products/Release-iphoneos
+      - name: Package to IPA
         run: |
-          mkdir Payload
-          cp -R XamReader.app Payload/
-          zip -qr XamReader-unsigned.ipa Payload
+          mkdir -p Payload
+          cp -r ios/build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -r HayhoXamReader.ipa Payload
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: XamReader-unsigned-ipa
-          path: ios/build/Build/Products/Release-iphoneos/XamReader-unsigned.ipa
+          name: HayhoXamReader-Unsigned-IPA
+          path: HayhoXamReader.ipa
