@@ -9,7 +9,9 @@
       "bundleIdentifier": "com.example.xamreader",
       "supportsTablet": false,
       "infoPlist": {
-        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "plugins": [
@@ -20,6 +22,11 @@
           "savePhotosPermission": "Cho phép lưu ảnh đã tải vào Thư viện ảnh."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "338d6b39-9575-4ef0-b91e-27063608bf7f"
+      }
+    }
   }
 }
