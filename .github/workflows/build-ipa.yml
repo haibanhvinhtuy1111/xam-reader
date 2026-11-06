@@ -1,0 +1,44 @@
+name: Build unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      # Sinh thư mục ios/ và tự chạy pod install
+      - run: npx expo prebuild --platform ios --clean
+
+      - name: Build (không ký)
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -workspace XamReader.xcworkspace \
+            -scheme XamReader \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+
+      - name: Đóng gói .ipa
+        working-directory: ios/build/Build/Products/Release-iphoneos
+        run: |
+          mkdir Payload
+          cp -R XamReader.app Payload/
+          zip -qr XamReader-unsigned.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XamReader-unsigned-ipa
+          path: ios/build/Build/Products/Release-iphoneos/XamReader-unsigned.ipa

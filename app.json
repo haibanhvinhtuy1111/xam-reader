@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "XamReader",
+    "slug": "xam-reader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.example.xamreader",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": true }
+      }
+    },
+    "plugins": [
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép truy cập Thư viện ảnh.",
+          "savePhotosPermission": "Cho phép lưu ảnh đã tải vào Thư viện ảnh."
+        }
+      ]
+    ]
+  }
+}
