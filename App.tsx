@@ -1,5 +1,4 @@
-import './global.css';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Keyboard, Linking, Modal, Pressable, RefreshControl,
   ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions,
@@ -14,17 +13,65 @@ import {
   MessageSquare, MoreHorizontal, Play, Search, ShieldCheck, User, X, Zap, ZoomIn,
 } from 'lucide-react-native';
 
-import { getConfig, initConfig, refreshRemoteDomain, setDomain, setUseProxy, useConfig } from './src/services/domain';
+import { initConfig, refreshRemoteDomain, setDomain, setUseProxy, useConfig } from './src/services/domain';
 import { UA, clearCookies, fetchHtml, hasClearance, imageSource, isCloudflare, syncCookiesFromWebView } from './src/services/http';
 import { fetchLatest, scrapeThread, searchForum } from './src/services/scraper';
 import { MediaItem, ThreadItem, hostOf } from './src/services/parser';
 
-/* ───────────── Theme ───────────── */
-const C = { bg: '#F8F9F5', ink: '#111827', brand: '#1E4631', muted: '#6B7280', chip: '#EEF0EA', soft: '#E8EFE9' };
+/* ───────────── Theme & Styles ───────────── */
+const C = {
+  bg: '#F8F9F5',
+  ink: '#111827',
+  brand: '#1E4631',
+  muted: '#6B7280',
+  chip: '#EEF0EA',
+  soft: '#E8EFE9',
+  warnBg: '#FFFBEB',
+  warnBorder: '#F3E3C7',
+  danger: '#DC2626',
+};
+
 const SHADOW = {
-  shadowColor: '#0B1F14', shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3,
+  shadowColor: '#0B1F14',
+  shadowOpacity: 0.07,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 3,
 } as const;
+
 const BAR_H = 64;
+
+/* ───────────── Error Boundary chống văng app ───────────── */
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('App ErrorBoundary:', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', padding: 24 }}>
+          <Text style={{ fontSize: 20, fontWeight: '800', color: C.danger, marginBottom: 8 }}>
+            Ứng dụng gặp lỗi khởi chạy
+          </Text>
+          <Text style={{ fontSize: 14, color: C.ink, marginBottom: 16 }}>
+            {this.state.error.message || String(this.state.error)}
+          </Text>
+          <Pressable
+            onPress={() => this.setState({ error: null })}
+            style={{ backgroundColor: C.brand, height: 46, borderRadius: 999, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Thử tải lại</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /* ───────────── App context ───────────── */
 type Mode = 'keyword' | 'author' | 'post';
@@ -63,20 +110,47 @@ function useRun() {
 const Title = ({ children }: { children: string }) => {
   const { top } = useSafeAreaInsets();
   return (
-    <Text className="text-ink font-extrabold text-[32px] px-5 pb-3" style={{ paddingTop: top + 8 }}>
+    <Text
+      style={{
+        color: C.ink,
+        fontWeight: '800',
+        fontSize: 32,
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+        paddingTop: top + 8,
+      }}
+    >
       {children}
     </Text>
   );
 };
 
-function Segmented<T extends string>({ options, value, onChange }: { options: readonly T[]; value: T; onChange: (v: T) => void }) {
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
   return (
-    <View className="flex-row rounded-full p-1" style={{ backgroundColor: C.chip }}>
+    <View style={{ flexDirection: 'row', borderRadius: 999, padding: 4, backgroundColor: C.chip }}>
       {options.map((o) => {
         const on = o === value;
         return (
-          <Pressable key={o} onPress={() => onChange(o)} className={`flex-1 py-2.5 rounded-full items-center ${on ? 'bg-brand' : ''}`}>
-            <Text className={`text-[14px] font-semibold ${on ? 'text-white' : 'text-ink'}`}>{o}</Text>
+          <Pressable
+            key={o}
+            onPress={() => onChange(o)}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 999,
+              alignItems: 'center',
+              backgroundColor: on ? C.brand : 'transparent',
+            }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: '600', color: on ? '#fff' : C.ink }}>{o}</Text>
           </Pressable>
         );
       })}
@@ -85,20 +159,60 @@ function Segmented<T extends string>({ options, value, onChange }: { options: re
 }
 
 const PrimaryButton = ({ label, onPress, busy }: { label: string; onPress: () => void; busy?: boolean }) => (
-  <Pressable onPress={onPress} disabled={busy} className="mt-4 h-12 rounded-full bg-brand items-center justify-center flex-row">
-    {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold text-[16px]">{label}</Text>}
+  <Pressable
+    onPress={onPress}
+    disabled={busy}
+    style={{
+      marginTop: 16,
+      height: 48,
+      borderRadius: 999,
+      backgroundColor: C.brand,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'row',
+    }}
+  >
+    {busy ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{label}</Text>}
   </Pressable>
 );
 
 function ThreadRow({ t }: { t: ThreadItem }) {
   const { openGallery } = useApp();
   return (
-    <Pressable onPress={() => openGallery(t.url, t.title)} className="bg-white rounded-3xl p-4 flex-row items-center mb-3" style={SHADOW}>
-      <View className="flex-1 pr-3">
-        <Text numberOfLines={2} className="text-ink font-semibold text-[15px]">{t.title}</Text>
-        {!!t.snippet && <Text numberOfLines={2} className="text-[13px] mt-1" style={{ color: C.muted }}>{t.snippet}</Text>}
+    <Pressable
+      onPress={() => openGallery(t.url, t.title)}
+      style={[
+        SHADOW,
+        {
+          backgroundColor: '#fff',
+          borderRadius: 24,
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+        },
+      ]}
+    >
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text numberOfLines={2} style={{ color: C.ink, fontWeight: '600', fontSize: 15 }}>
+          {t.title}
+        </Text>
+        {!!t.snippet && (
+          <Text numberOfLines={2} style={{ fontSize: 13, marginTop: 4, color: C.muted }}>
+            {t.snippet}
+          </Text>
+        )}
       </View>
-      <View className="w-10 h-10 rounded-full bg-brand items-center justify-center">
+      <View
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: C.brand,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <Images size={18} color="#fff" />
       </View>
     </Pressable>
@@ -138,17 +252,30 @@ function SearchScreen() {
     fetchHtml(domain + '/', {}, 8000)
       .then(() => !off && setStatus('ok'))
       .catch((e) => !off && setStatus(isCloudflare(e) ? 'cf' : 'err'));
-    return () => { off = true; };
+    return () => {
+      off = true;
+    };
   }, [domain, cfVersion]);
 
   const go = async () => {
     if (!q.trim()) return;
     Keyboard.dismiss();
-    setBusy(true); setErr(''); setRows(null);
+    setBusy(true);
+    setErr('');
+    setRows(null);
     try {
-      setRows(await run(() => searchForum({ q, by: by === 'Tác giả' ? 'author' : scope, exact: match === 'Chính xác', order: SORTS[sort] })));
+      setRows(
+        await run(() =>
+          searchForum({
+            q,
+            by: by === 'Tác giả' ? 'author' : scope,
+            exact: match === 'Chính xác',
+            order: SORTS[sort],
+          }),
+        ),
+      );
     } catch (e: any) {
-      setErr(e.message);
+      setErr(e?.message || 'Lỗi tìm kiếm');
     } finally {
       setBusy(false);
     }
@@ -166,47 +293,103 @@ function SearchScreen() {
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: bottomSpace }}>
       <Title>Tìm toàn diễn đàn</Title>
 
-      <View className="mx-5 bg-white rounded-3xl p-5" style={SHADOW}>
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-2xl items-center justify-center" style={{ backgroundColor: C.soft }}>
+      <View style={[SHADOW, { marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 24, padding: 20 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: C.soft,
+            }}
+          >
             <ZoomIn size={20} color={C.brand} />
           </View>
-          <View className="ml-3 flex-1">
-            <Text className="text-ink font-bold text-[17px]">Bạn muốn tìm gì?</Text>
-            <Text className="text-[13px] mt-0.5" style={{ color: C.muted }}>Tìm đồng thời bài mới và kho chủ đề cũ trên cả hai nguồn.</Text>
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text style={{ color: C.ink, fontWeight: '700', fontSize: 17 }}>Bạn muốn tìm gì?</Text>
+            <Text style={{ fontSize: 13, marginTop: 2, color: C.muted }}>
+              Tìm đồng thời bài mới và kho chủ đề cũ trên cả hai nguồn.
+            </Text>
           </View>
         </View>
 
         <TextInput
-          value={q} onChangeText={setQ} onSubmitEditing={go} returnKeyType="search"
+          value={q}
+          onChangeText={setQ}
+          onSubmitEditing={go}
+          returnKeyType="search"
           placeholder={by === 'Tác giả' ? 'Nhập tên người đăng' : 'Nhập từ khóa chủ đề'}
-          placeholderTextColor="#9CA3AF" autoCapitalize="none" autoCorrect={false}
-          className="mt-4 rounded-2xl px-4 h-12 text-[16px] text-ink" style={{ backgroundColor: '#F4F5F0' }}
+          placeholderTextColor="#9CA3AF"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={{
+            marginTop: 16,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            height: 48,
+            fontSize: 16,
+            color: C.ink,
+            backgroundColor: '#F4F5F0',
+          }}
         />
         {scope === 'post' && by === 'Từ khóa' && (
           <Pressable onPress={() => setScope('thread')}>
-            <Text className="text-[12px] mt-2 px-1" style={{ color: C.brand }}>Đang tìm trong nội dung bình luận · chạm để quay về tìm theo tiêu đề</Text>
+            <Text style={{ fontSize: 12, marginTop: 8, paddingHorizontal: 4, color: C.brand }}>
+              Đang tìm trong nội dung bình luận · chạm để quay về tìm theo tiêu đề
+            </Text>
           </Pressable>
         )}
 
-        <View className="mt-4"><Segmented options={BY} value={by} onChange={setBy} /></View>
+        <View style={{ marginTop: 16 }}>
+          <Segmented options={BY} value={by} onChange={setBy} />
+        </View>
 
-        <Pressable onPress={() => setOpen(!open)} className="flex-row items-center justify-between mt-4 py-1">
-          <Text className="text-ink font-semibold text-[15px]">Tùy chọn tìm kiếm</Text>
-          <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}><ChevronDown size={20} color={C.muted} /></View>
+        <Pressable
+          onPress={() => setOpen(!open)}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingVertical: 4 }}
+        >
+          <Text style={{ color: C.ink, fontWeight: '600', fontSize: 15 }}>Tùy chọn tìm kiếm</Text>
+          <View style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
+            <ChevronDown size={20} color={C.muted} />
+          </View>
         </Pressable>
+
         {open && (
-          <View className="mt-2">
+          <View style={{ marginTop: 8 }}>
             <Segmented options={MATCH} value={match} onChange={setMatch} />
-            <Pressable onPress={() => setMenu(!menu)} className="mt-3 h-12 rounded-2xl px-4 flex-row items-center justify-between" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
-              <Text className="text-ink text-[15px]">{sort}</Text>
+            <Pressable
+              onPress={() => setMenu(!menu)}
+              style={{
+                marginTop: 12,
+                height: 48,
+                borderRadius: 16,
+                paddingHorizontal: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}
+            >
+              <Text style={{ color: C.ink, fontSize: 15 }}>{sort}</Text>
               <ChevronDown size={18} color={C.muted} />
             </Pressable>
             {menu && (
-              <View className="mt-1 rounded-2xl overflow-hidden" style={{ borderWidth: 1, borderColor: '#E5E7EB' }}>
+              <View style={{ marginTop: 4, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}>
                 {(Object.keys(SORTS) as (keyof typeof SORTS)[]).map((k) => (
-                  <Pressable key={k} onPress={() => { setSort(k); setMenu(false); }} className="px-4 py-3" style={{ backgroundColor: k === sort ? C.soft : '#fff' }}>
-                    <Text className={`text-[15px] ${k === sort ? 'text-brand font-semibold' : 'text-ink'}`}>{k}</Text>
+                  <Pressable
+                    key={k}
+                    onPress={() => {
+                      setSort(k);
+                      setMenu(false);
+                    }}
+                    style={{ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: k === sort ? C.soft : '#fff' }}
+                  >
+                    <Text style={{ fontSize: 15, color: k === sort ? C.brand : C.ink, fontWeight: k === sort ? '600' : '400' }}>
+                      {k}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
@@ -216,21 +399,42 @@ function SearchScreen() {
         <PrimaryButton label="Tìm kiếm" onPress={go} busy={busy} />
       </View>
 
-      <View className="mx-5 mt-4 rounded-3xl bg-warn p-4 flex-row" style={{ borderWidth: 1, borderColor: '#F3E3C7' }}>
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginTop: 16,
+          borderRadius: 24,
+          backgroundColor: C.warnBg,
+          padding: 16,
+          flexDirection: 'row',
+          borderWidth: 1,
+          borderColor: C.warnBorder,
+        }}
+      >
         <AlertTriangle size={22} color="#EA8A1C" />
-        <View className="flex-1 ml-3">
-          <Text className="text-ink font-semibold text-[15px]">{warn[0]}</Text>
-          <Text className="text-[13px] mt-0.5" style={{ color: C.muted }}>{warn[1]}</Text>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={{ color: C.ink, fontWeight: '600', fontSize: 15 }}>{warn[0]}</Text>
+          <Text style={{ fontSize: 13, marginTop: 2, color: C.muted }}>{warn[1]}</Text>
           {status === 'cf' && (
-            <Pressable onPress={requestCF} className="self-start mt-2 px-4 py-2 rounded-full bg-brand">
-              <Text className="text-white font-semibold text-[13px]">Xác thực ngay</Text>
+            <Pressable
+              onPress={requestCF}
+              style={{
+                alignSelf: 'flex-start',
+                marginTop: 8,
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 999,
+                backgroundColor: C.brand,
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Xác thực ngay</Text>
             </Pressable>
           )}
         </View>
       </View>
 
-      <View className="px-5 mt-5">
-        {!!err && <Text className="text-red-600 text-[14px] px-1">{err}</Text>}
+      <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+        {!!err && <Text style={{ color: C.danger, fontSize: 14, paddingHorizontal: 4, marginBottom: 8 }}>{err}</Text>}
         {rows?.map((t) => <ThreadRow key={t.url} t={t} />)}
       </View>
     </ScrollView>
@@ -247,20 +451,31 @@ function LatestScreen({ active }: { active: boolean }) {
   const [err, setErr] = useState('');
 
   const load = useCallback(async () => {
-    setBusy(true); setErr('');
-    try { setRows(await run(fetchLatest)); } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+    setBusy(true);
+    setErr('');
+    try {
+      setRows(await run(fetchLatest));
+    } catch (e: any) {
+      setErr(e?.message || 'Không tải được danh sách bài mới');
+    } finally {
+      setBusy(false);
+    }
   }, [run, domain]);
 
-  useEffect(() => { if (active) load(); }, [active, load, cfVersion]);
+  useEffect(() => {
+    if (active) load();
+  }, [active, load, cfVersion]);
 
   return (
-    <View className="flex-1">
+    <View style={{ flex: 1 }}>
       <Title>Mới nhất</Title>
       <FlatList
-        data={rows} keyExtractor={(t) => t.url} renderItem={({ item }) => <ThreadRow t={item} />}
+        data={rows}
+        keyExtractor={(t) => t.url}
+        renderItem={({ item }) => <ThreadRow t={item} />}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: bottomSpace }}
         refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.brand} />}
-        ListEmptyComponent={err ? <Text className="text-red-600 text-[14px] px-1">{err}</Text> : null}
+        ListEmptyComponent={err ? <Text style={{ color: C.danger, fontSize: 14, paddingHorizontal: 4 }}>{err}</Text> : null}
       />
     </View>
   );
@@ -289,25 +504,65 @@ function CategoryScreen() {
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: bottomSpace }}>
       <Title>Danh mục</Title>
-      <View className="px-5 flex-row flex-wrap justify-between">
+      <View style={{ paddingHorizontal: 20, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         {cards.map(({ Icon, title, sub, onPress }) => (
-          <Pressable key={title} onPress={onPress} className="bg-white rounded-3xl p-5 mb-3" style={[SHADOW, { width: '48.5%', minHeight: 150 }]}>
-            <View className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: C.soft }}>
+          <Pressable
+            key={title}
+            onPress={onPress}
+            style={[
+              SHADOW,
+              {
+                backgroundColor: '#fff',
+                borderRadius: 24,
+                padding: 20,
+                marginBottom: 12,
+                width: '48.5%',
+                minHeight: 150,
+                justifyContent: 'space-between',
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: C.soft,
+              }}
+            >
               <Icon size={24} color={C.brand} />
             </View>
-            <Text className="text-ink font-bold text-[16px] mt-auto pt-4">{title}</Text>
-            <Text className="text-[13px] mt-0.5" style={{ color: C.muted }}>{sub}</Text>
+            <View style={{ paddingTop: 16 }}>
+              <Text style={{ color: C.ink, fontWeight: '700', fontSize: 16 }}>{title}</Text>
+              <Text style={{ fontSize: 13, marginTop: 2, color: C.muted }}>{sub}</Text>
+            </View>
           </Pressable>
         ))}
       </View>
       {showLink && (
-        <View className="mx-5 bg-white rounded-3xl p-5" style={SHADOW}>
-          <Text className="text-ink font-bold text-[16px]">Dán link bài viết</Text>
+        <View style={[SHADOW, { marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 24, padding: 20 }]}>
+          <Text style={{ color: C.ink, fontWeight: '700', fontSize: 16 }}>Dán link bài viết</Text>
           <TextInput
-            value={link} onChangeText={setLink} onSubmitEditing={submit} returnKeyType="go"
-            placeholder={`${domain}/threads/...`} placeholderTextColor="#9CA3AF"
-            autoCapitalize="none" autoCorrect={false} keyboardType="url"
-            className="mt-3 rounded-2xl px-4 h-12 text-[16px] text-ink" style={{ backgroundColor: '#F4F5F0' }}
+            value={link}
+            onChangeText={setLink}
+            onSubmitEditing={submit}
+            returnKeyType="go"
+            placeholder={`${domain}/threads/...`}
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            style={{
+              marginTop: 12,
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              height: 48,
+              fontSize: 16,
+              color: C.ink,
+              backgroundColor: '#F4F5F0',
+            }}
           />
           <PrimaryButton label="Quét ảnh & video" onPress={submit} />
         </View>
@@ -325,51 +580,127 @@ function MoreScreen() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => setD(domain), [domain]);
-  useEffect(() => { hasClearance(domain).then(setClear).catch(() => setClear(false)); }, [domain, cfVersion]);
+  useEffect(() => {
+    hasClearance(domain)
+      .then(setClear)
+      .catch(() => setClear(false));
+  }, [domain, cfVersion]);
 
   const save = async () => {
-    try { await setDomain(d); Alert.alert('Đã lưu', 'Domain mới sẽ được dùng cho mọi yêu cầu tiếp theo.'); }
-    catch (e: any) { Alert.alert('Lỗi', e.message); }
+    try {
+      await setDomain(d);
+      Alert.alert('Đã lưu', 'Domain mới sẽ được dùng cho mọi yêu cầu tiếp theo.');
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không lưu được domain');
+    }
   };
   const sync = async () => {
     setBusy(true);
-    try { const n = await refreshRemoteDomain(true); Alert.alert('Đã cập nhật', n ?? ''); }
-    catch (e: any) { Alert.alert('Không cập nhật được', e.message); }
-    finally { setBusy(false); }
+    try {
+      const n = await refreshRemoteDomain(true);
+      Alert.alert('Đã cập nhật', n ?? '');
+    } catch (e: any) {
+      Alert.alert('Không cập nhật được', e?.message || 'Lỗi mạng');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: bottomSpace }}>
       <Title>Thêm</Title>
 
-      <View className="mx-5 bg-white rounded-3xl p-5" style={SHADOW}>
-        <View className="flex-row items-center"><Globe size={20} color={C.brand} /><Text className="ml-2 text-ink font-bold text-[16px]">Tên miền diễn đàn</Text></View>
-        <TextInput value={d} onChangeText={setD} autoCapitalize="none" autoCorrect={false} keyboardType="url"
-          className="mt-3 rounded-2xl px-4 h-12 text-[16px] text-ink" style={{ backgroundColor: '#F4F5F0' }} />
-        <Text className="text-[12px] mt-2" style={{ color: C.muted }}>
+      <View style={[SHADOW, { marginHorizontal: 20, backgroundColor: '#fff', borderRadius: 24, padding: 20 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Globe size={20} color={C.brand} />
+          <Text style={{ marginLeft: 8, color: C.ink, fontWeight: '700', fontSize: 16 }}>Tên miền diễn đàn</Text>
+        </View>
+        <TextInput
+          value={d}
+          onChangeText={setD}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          style={{
+            marginTop: 12,
+            borderRadius: 16,
+            paddingHorizontal: 16,
+            height: 48,
+            fontSize: 16,
+            color: C.ink,
+            backgroundColor: '#F4F5F0',
+          }}
+        />
+        <Text style={{ fontSize: 12, marginTop: 8, color: C.muted }}>
           {manual ? 'Đang dùng domain bạn nhập tay.' : 'Domain tự cập nhật từ máy chủ cấu hình mỗi lần mở app.'}
         </Text>
         <PrimaryButton label="Lưu domain" onPress={save} />
-        <Pressable onPress={sync} disabled={busy} className="mt-2 h-11 rounded-full items-center justify-center" style={{ backgroundColor: C.chip }}>
-          {busy ? <ActivityIndicator color={C.brand} /> : <Text className="text-brand font-semibold text-[15px]">Lấy domain mới từ GitHub</Text>}
+        <Pressable
+          onPress={sync}
+          disabled={busy}
+          style={{
+            marginTop: 8,
+            height: 44,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: C.chip,
+          }}
+        >
+          {busy ? (
+            <ActivityIndicator color={C.brand} />
+          ) : (
+            <Text style={{ color: C.brand, fontWeight: '600', fontSize: 15 }}>Lấy domain mới từ GitHub</Text>
+          )}
         </Pressable>
       </View>
 
-      <View className="mx-5 mt-4 bg-white rounded-3xl p-5" style={SHADOW}>
-        <View className="flex-row items-center"><ShieldCheck size={20} color={C.brand} /><Text className="ml-2 text-ink font-bold text-[16px]">Cookie Cloudflare</Text></View>
-        <Text className="text-[13px] mt-2" style={{ color: C.muted }}>
+      <View style={[SHADOW, { marginHorizontal: 20, marginTop: 16, backgroundColor: '#fff', borderRadius: 24, padding: 20 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <ShieldCheck size={20} color={C.brand} />
+          <Text style={{ marginLeft: 8, color: C.ink, fontWeight: '700', fontSize: 16 }}>Cookie Cloudflare</Text>
+        </View>
+        <Text style={{ fontSize: 13, marginTop: 8, color: C.muted }}>
           {clear ? 'Đã có cookie xác thực (cf_clearance).' : 'Chưa có cookie xác thực. Chỉ cần khi diễn đàn trả lỗi 403.'}
         </Text>
         <PrimaryButton label="Mở trang xác thực" onPress={requestCF} />
-        <Pressable onPress={async () => { await clearCookies(); setClear(false); }} className="mt-2 h-11 rounded-full items-center justify-center" style={{ backgroundColor: C.chip }}>
-          <Text className="text-ink font-semibold text-[15px]">Xóa cookie</Text>
+        <Pressable
+          onPress={async () => {
+            await clearCookies();
+            setClear(false);
+          }}
+          style={{
+            marginTop: 8,
+            height: 44,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: C.chip,
+          }}
+        >
+          <Text style={{ color: C.ink, fontWeight: '600', fontSize: 15 }}>Xóa cookie</Text>
         </Pressable>
       </View>
 
-      <View className="mx-5 mt-4 bg-white rounded-3xl p-5 flex-row items-center" style={SHADOW}>
-        <View className="flex-1 pr-4">
-          <Text className="text-ink font-bold text-[16px]">Xem ảnh qua proxy</Text>
-          <Text className="text-[13px] mt-1" style={{ color: C.muted }}>Bọc link ảnh qua wsrv.nl, hữu ích khi nhà mạng chặn zpic/anh.moe mà không bật VPN.</Text>
+      <View
+        style={[
+          SHADOW,
+          {
+            marginHorizontal: 20,
+            marginTop: 16,
+            backgroundColor: '#fff',
+            borderRadius: 24,
+            padding: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+          },
+        ]}
+      >
+        <View style={{ flex: 1, paddingRight: 16 }}>
+          <Text style={{ color: C.ink, fontWeight: '700', fontSize: 16 }}>Xem ảnh qua proxy</Text>
+          <Text style={{ fontSize: 13, marginTop: 4, color: C.muted }}>
+            Bọc link ảnh qua wsrv.nl, hữu ích khi nhà mạng chặn zpic/anh.moe mà không bật VPN.
+          </Text>
         </View>
         <Switch value={useProxy} onValueChange={setUseProxy} trackColor={{ true: C.brand }} />
       </View>
@@ -383,7 +714,9 @@ async function saveImage(url: string) {
   if (!perm.granted) throw new Error('Hãy cho phép thêm ảnh vào Thư viện trong Cài đặt.');
   const ext = (url.split(/[?#]/)[0].match(/\.(jpe?g|png|gif|webp|heic)$/i)?.[1] ?? 'jpg').toLowerCase();
   const src = imageSource(url);
-  const res = await FileSystem.downloadAsync(src.uri, `${FileSystem.cacheDirectory}xam_${Date.now()}.${ext}`, { headers: src.headers });
+  const res = await FileSystem.downloadAsync(src.uri, `${FileSystem.cacheDirectory}xam_${Date.now()}.${ext}`, {
+    headers: src.headers,
+  });
   if (res.status !== 200) throw new Error(`Tải thất bại (HTTP ${res.status})`);
   await MediaLibrary.saveToLibraryAsync(res.uri);
 }
@@ -391,40 +724,95 @@ async function saveImage(url: string) {
 function Viewer({ images, start, onClose }: { images: MediaItem[]; start: number; onClose: () => void }) {
   const { width, height } = useWindowDimensions();
   const { top, bottom } = useSafeAreaInsets();
-  const [cur, setCur] = useState(start);
+  const safeStart = Math.max(0, Math.min(start, images.length - 1));
+  const [cur, setCur] = useState(safeStart);
   const [saving, setSaving] = useState(false);
 
   const download = async () => {
+    if (!images[cur]) return;
     setSaving(true);
-    try { await saveImage(images[cur].url); Alert.alert('Đã lưu', 'Ảnh đã được thêm vào Thư viện.'); }
-    catch (e: any) { Alert.alert('Không lưu được', e.message); }
-    finally { setSaving(false); }
+    try {
+      await saveImage(images[cur].url);
+      Alert.alert('Đã lưu', 'Ảnh đã được thêm vào Thư viện.');
+    } catch (e: any) {
+      Alert.alert('Không lưu được', e?.message || 'Lỗi lưu ảnh');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
         <FlatList
-          horizontal pagingEnabled data={images} keyExtractor={(i) => i.id}
-          initialScrollIndex={start} windowSize={3} showsHorizontalScrollIndicator={false}
+          horizontal
+          pagingEnabled
+          data={images}
+          keyExtractor={(i) => i.id}
+          initialScrollIndex={safeStart}
+          windowSize={3}
+          showsHorizontalScrollIndicator={false}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           onMomentumScrollEnd={(e) => setCur(Math.round(e.nativeEvent.contentOffset.x / width))}
           renderItem={({ item }) => (
-            <ScrollView style={{ width, height }} contentContainerStyle={{ width, height, justifyContent: 'center' }}
-              maximumZoomScale={4} minimumZoomScale={1} centerContent bouncesZoom
-              showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={{ width, height }}
+              contentContainerStyle={{ width, height, justifyContent: 'center' }}
+              maximumZoomScale={4}
+              minimumZoomScale={1}
+              centerContent
+              bouncesZoom
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+            >
               <Image source={imageSource(item.url)} style={{ width, height }} contentFit="contain" />
             </ScrollView>
           )}
         />
-        <View pointerEvents="box-none" style={{ position: 'absolute', top: top + 6, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Pressable onPress={onClose} hitSlop={10} className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            top: top + 6,
+            left: 16,
+            right: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.55)',
+            }}
+          >
             <X size={22} color="#fff" />
           </Pressable>
-          <View className="px-4 py-2 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
-            <Text className="text-white font-semibold">{cur + 1} / {images.length}</Text>
+          <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.55)' }}>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>
+              {cur + 1} / {images.length}
+            </Text>
           </View>
-          <Pressable onPress={download} disabled={saving} hitSlop={10} className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
+          <Pressable
+            onPress={download}
+            disabled={saving}
+            hitSlop={10}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.55)',
+            }}
+          >
             {saving ? <ActivityIndicator color="#fff" /> : <Download size={20} color="#fff" />}
           </Pressable>
         </View>
@@ -451,18 +839,39 @@ function GalleryScreen({ url, hint, onBack }: { url: string; hint?: string; onBa
 
   useEffect(() => {
     let off = false;
-    setItems([]); setState('load'); setErr('');
+    setItems([]);
+    setState('load');
+    setErr('');
     scrapeThread(url, {
       isCancelled: () => off,
-      onTitle: (t) => { if (!off && t) setTitle(t); },
-      onProgress: (list, done, total) => { if (!off) { setItems(list); setProg({ done, total }); } },
+      onTitle: (t) => {
+        if (!off && t) setTitle(t);
+      },
+      onProgress: (list, done, total) => {
+        if (!off) {
+          setItems(list);
+          setProg({ done, total });
+        }
+      },
     })
-      .then(() => { if (!off) setState('done'); })
-      .catch((e) => { if (off) return; if (isCloudflare(e)) setState('cf'); else { setErr(e.message); setState('err'); } });
-    return () => { off = true; };
+      .then(() => {
+        if (!off) setState('done');
+      })
+      .catch((e) => {
+        if (off) return;
+        if (isCloudflare(e)) setState('cf');
+        else {
+          setErr(e?.message || 'Lỗi tải chủ đề');
+          setState('err');
+        }
+      });
+    return () => {
+      off = true;
+    };
   }, [url, cfVersion]);
 
-  const GAP = 3, PAD = 16;
+  const GAP = 3;
+  const PAD = 16;
   const size = Math.floor((width - PAD * 2 - GAP * 2) / 3);
   const shown = items.filter((i) => filter === 'Tất cả' || (filter === 'Ảnh') === (i.type === 'image'));
   const imgs = shown.filter((i) => i.type === 'image');
@@ -471,44 +880,92 @@ function GalleryScreen({ url, hint, onBack }: { url: string; hint?: string; onBa
   const open = (it: MediaItem) => (it.type === 'video' ? Linking.openURL(it.url) : setViewer(imgs.indexOf(it)));
 
   return (
-    <View className="flex-1 bg-cream">
-      <View className="flex-row items-center px-4 pb-3" style={{ paddingTop: top + 6 }}>
-        <Pressable onPress={onBack} hitSlop={10} className="w-11 h-11 rounded-full bg-white items-center justify-center" style={SHADOW}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, paddingTop: top + 6 }}>
+        <Pressable
+          onPress={onBack}
+          hitSlop={10}
+          style={[
+            SHADOW,
+            {
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: '#fff',
+              alignItems: 'center',
+              justifyContent: 'center',
+            },
+          ]}
+        >
           <ArrowLeft size={22} color={C.ink} />
         </Pressable>
-        <View className="flex-1 ml-3">
-          <Text numberOfLines={1} className="text-ink font-bold text-[17px]">{title || 'Đang tải…'}</Text>
-          <Text className="text-[12px] mt-0.5" style={{ color: C.muted }}>
-            {nImg} ảnh · {items.length - nImg} video{state === 'load' && prog.total > 0 ? ` · trang ${prog.done}/${prog.total}` : ''}
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontWeight: '700', fontSize: 17 }}>
+            {title || 'Đang tải…'}
+          </Text>
+          <Text style={{ fontSize: 12, marginTop: 2, color: C.muted }}>
+            {nImg} ảnh · {items.length - nImg} video
+            {state === 'load' && prog.total > 0 ? ` · trang ${prog.done}/${prog.total}` : ''}
           </Text>
         </View>
         {state === 'load' && <ActivityIndicator color={C.brand} />}
       </View>
 
-      <View className="px-4 pb-3"><Segmented options={FILTERS} value={filter} onChange={setFilter} /></View>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+        <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+      </View>
 
       {state === 'cf' && (
-        <View className="mx-4 mb-3 rounded-3xl bg-warn p-4">
-          <Text className="text-ink font-semibold">Cloudflare đang chặn</Text>
-          <Text className="text-[13px] mt-1" style={{ color: C.muted }}>Xác thực một lần rồi trang sẽ tự quét lại.</Text>
-          <Pressable onPress={requestCF} className="self-start mt-3 px-4 py-2 rounded-full bg-brand"><Text className="text-white font-semibold">Xác thực ngay</Text></Pressable>
+        <View style={{ marginHorizontal: 16, marginBottom: 12, borderRadius: 24, backgroundColor: C.warnBg, padding: 16 }}>
+          <Text style={{ color: C.ink, fontWeight: '600' }}>Cloudflare đang chặn</Text>
+          <Text style={{ fontSize: 13, marginTop: 4, color: C.muted }}>Xác thực một lần rồi trang sẽ tự quét lại.</Text>
+          <Pressable
+            onPress={requestCF}
+            style={{
+              alignSelf: 'flex-start',
+              marginTop: 12,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 999,
+              backgroundColor: C.brand,
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Xác thực ngay</Text>
+          </Pressable>
         </View>
       )}
-      {state === 'err' && <Text className="text-red-600 px-5 pb-3">{err}</Text>}
+      {state === 'err' && <Text style={{ color: C.danger, paddingHorizontal: 20, paddingBottom: 12 }}>{err}</Text>}
 
       <FlatList
-        data={shown} keyExtractor={(i) => i.id} numColumns={3} extraData={useProxy}
-        columnWrapperStyle={{ gap: GAP }} contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 40, gap: GAP }}
-        initialNumToRender={24} windowSize={7} removeClippedSubviews
-        ListEmptyComponent={state === 'done' ? <Text className="text-center mt-10" style={{ color: C.muted }}>Không tìm thấy ảnh/video nào trong chủ đề này.</Text> : null}
+        data={shown}
+        keyExtractor={(i) => i.id}
+        numColumns={3}
+        extraData={useProxy}
+        columnWrapperStyle={{ gap: GAP }}
+        contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 40, gap: GAP }}
+        initialNumToRender={24}
+        windowSize={7}
+        removeClippedSubviews
+        ListEmptyComponent={
+          state === 'done' ? (
+            <Text style={{ textAlign: 'center', marginTop: 40, color: C.muted }}>
+              Không tìm thấy ảnh/video nào trong chủ đề này.
+            </Text>
+          ) : null
+        }
         renderItem={({ item }) => (
-          <Pressable onPress={() => open(item)} style={{ width: size, height: size, borderRadius: 16, overflow: 'hidden', backgroundColor: '#E5E7EB' }}>
+          <Pressable
+            onPress={() => open(item)}
+            style={{ width: size, height: size, borderRadius: 16, overflow: 'hidden', backgroundColor: '#E5E7EB' }}
+          >
             {item.type === 'image' ? (
               <Image source={imageSource(item.url, true)} style={{ flex: 1 }} contentFit="cover" transition={120} recyclingKey={item.id} />
             ) : (
-              <View className="flex-1 items-center justify-center bg-ink">
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.ink }}>
                 <Play size={26} color="#fff" />
-                <Text numberOfLines={1} className="text-white/70 text-[10px] mt-1 px-2">{hostOf(item.url)}</Text>
+                <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 4, paddingHorizontal: 8 }}>
+                  {hostOf(item.url)}
+                </Text>
               </View>
             )}
           </Pressable>
@@ -527,21 +984,50 @@ function CloudflareModal({ visible, onClose }: { visible: boolean; onClose: (sav
 
   const save = async () => {
     setBusy(true);
-    try { await syncCookiesFromWebView(domain); onClose(true); }
-    catch (e: any) { Alert.alert('Không lưu được cookie', e.message); }
-    finally { setBusy(false); }
+    try {
+      await syncCookiesFromWebView(domain);
+      onClose(true);
+    } catch (e: any) {
+      Alert.alert('Không lưu được cookie', e?.message || 'Lỗi đồng bộ cookie');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => onClose(false)}>
-      <View className="flex-1 bg-cream">
-        <View className="flex-row items-center justify-between px-4 pb-3" style={{ paddingTop: top + 6 }}>
-          <Pressable onPress={() => onClose(false)} hitSlop={10}><Text className="text-[16px]" style={{ color: C.muted }}>Hủy</Text></Pressable>
-          <Text className="text-ink font-bold text-[16px]">Xác thực Cloudflare</Text>
-          <Pressable onPress={save} hitSlop={10}>{busy ? <ActivityIndicator /> : <Text className="text-brand font-bold text-[16px]">Xong</Text>}</Pressable>
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 16,
+            paddingBottom: 12,
+            paddingTop: top + 6,
+          }}
+        >
+          <Pressable onPress={() => onClose(false)} hitSlop={10}>
+            <Text style={{ fontSize: 16, color: C.muted }}>Hủy</Text>
+          </Pressable>
+          <Text style={{ color: C.ink, fontWeight: '700', fontSize: 16 }}>Xác thực Cloudflare</Text>
+          <Pressable onPress={save} hitSlop={10}>
+            {busy ? <ActivityIndicator /> : <Text style={{ color: C.brand, fontWeight: '700', fontSize: 16 }}>Xong</Text>}
+          </Pressable>
         </View>
-        <Text className="px-5 pb-2 text-[13px]" style={{ color: C.muted }}>Tick ô xác thực, đợi trang diễn đàn hiện ra rồi bấm “Xong”.</Text>
-        {visible && <WebView source={{ uri: domain }} userAgent={UA} sharedCookiesEnabled thirdPartyCookiesEnabled javaScriptEnabled style={{ flex: 1 }} />}
+        <Text style={{ paddingHorizontal: 20, paddingBottom: 8, fontSize: 13, color: C.muted }}>
+          Tick ô xác thực, đợi trang diễn đàn hiện ra rồi bấm “Xong”.
+        </Text>
+        {visible && (
+          <WebView
+            source={{ uri: domain }}
+            userAgent={UA}
+            sharedCookiesEnabled
+            thirdPartyCookiesEnabled
+            javaScriptEnabled
+            style={{ flex: 1 }}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -555,20 +1041,45 @@ const TABS: { key: Tab; label: string; Icon: typeof Search }[] = [
   { key: 'category', label: 'Danh mục', Icon: LayoutGrid },
   { key: 'more', label: 'Thêm', Icon: MoreHorizontal },
 ];
-/** iPhone 13: inset đáy = 34pt. Trừ 10pt để thanh nổi sát phía trên Home Indicator thay vì cao quá. */
+
 const barBottom = (inset: number) => (inset > 0 ? inset - 10 : 16);
 
 function TabBar({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   const { bottom } = useSafeAreaInsets();
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 16, right: 16, bottom: barBottom(bottom) }}>
-      <View className="flex-row bg-white items-center px-2" style={[SHADOW, { height: BAR_H, borderRadius: BAR_H / 2, shadowOpacity: 0.14 }]}>
+      <View
+        style={[
+          SHADOW,
+          {
+            flexDirection: 'row',
+            backgroundColor: '#fff',
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            height: BAR_H,
+            borderRadius: BAR_H / 2,
+            shadowOpacity: 0.14,
+          },
+        ]}
+      >
         {TABS.map(({ key, label, Icon }) => {
           const on = key === tab;
           return (
-            <Pressable key={key} onPress={() => onChange(key)} className={`flex-1 items-center justify-center rounded-full mx-0.5 ${on ? 'bg-brand' : ''}`} style={{ height: BAR_H - 14 }}>
+            <Pressable
+              key={key}
+              onPress={() => onChange(key)}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                marginHorizontal: 2,
+                height: BAR_H - 14,
+                backgroundColor: on ? C.brand : 'transparent',
+              }}
+            >
               <Icon size={22} color={on ? '#fff' : C.muted} strokeWidth={on ? 2.4 : 2} />
-              <Text className={`text-[10.5px] mt-0.5 font-semibold ${on ? 'text-white' : ''}`} style={on ? undefined : { color: C.muted }}>{label}</Text>
+              <Text style={{ fontSize: 10.5, marginTop: 2, fontWeight: '600', color: on ? '#fff' : C.muted }}>{label}</Text>
             </Pressable>
           );
         })}
@@ -588,22 +1099,46 @@ function Root() {
   const [cfVersion, setCfVersion] = useState(0);
   const [preset, setPreset] = useState<Preset | null>(null);
 
-  useEffect(() => { initConfig().finally(() => setReady(true)); }, []);
+  useEffect(() => {
+    Promise.resolve()
+      .then(() => initConfig())
+      .catch((e) => console.warn('initConfig error:', e))
+      .finally(() => setReady(true));
+  }, []);
 
-  const changeTab = useCallback((t: Tab) => { setTab(t); setVisited((v) => (v.includes(t) ? v : [...v, t])); }, []);
+  const changeTab = useCallback((t: Tab) => {
+    setTab(t);
+    setVisited((v) => (v.includes(t) ? v : [...v, t]));
+  }, []);
   const requestCF = useCallback(() => setCfOpen(true), []);
   const openGallery = useCallback((url: string, title?: string) => setGallery({ url, title }), []);
-  const goSearch = useCallback((mode: Mode) => { setPreset({ mode, n: Date.now() }); changeTab('search'); }, [changeTab]);
+  const goSearch = useCallback(
+    (mode: Mode) => {
+      setPreset({ mode, n: Date.now() });
+      changeTab('search');
+    },
+    [changeTab],
+  );
 
-  if (!ready) return <View className="flex-1 items-center justify-center bg-cream"><ActivityIndicator color={C.brand} /></View>;
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg }}>
+        <ActivityIndicator color={C.brand} />
+      </View>
+    );
+  }
 
   const ctx: Ctx = { openGallery, requestCF, cfVersion, bottomSpace: BAR_H + barBottom(bottom) + 28, preset, goSearch };
-  // Giữ state từng tab bằng cách ẩn (display:none) thay vì unmount
-  const pane = (k: Tab, node: React.ReactNode) => visited.includes(k) && <View key={k} style={{ flex: 1, display: tab === k ? 'flex' : 'none' }}>{node}</View>;
+  const pane = (k: Tab, node: React.ReactNode) =>
+    visited.includes(k) && (
+      <View key={k} style={{ flex: 1, display: tab === k ? 'flex' : 'none' }}>
+        {node}
+      </View>
+    );
 
   return (
     <AppCtx.Provider value={ctx}>
-      <View className="flex-1 bg-cream">
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
         <StatusBar barStyle="dark-content" />
         {pane('search', <SearchScreen />)}
         {pane('latest', <LatestScreen active={tab === 'latest'} />)}
@@ -615,7 +1150,13 @@ function Root() {
             <GalleryScreen url={gallery.url} hint={gallery.title} onBack={() => setGallery(null)} />
           </View>
         )}
-        <CloudflareModal visible={cfOpen} onClose={(saved) => { setCfOpen(false); if (saved) setCfVersion((v) => v + 1); }} />
+        <CloudflareModal
+          visible={cfOpen}
+          onClose={(saved) => {
+            setCfOpen(false);
+            if (saved) setCfVersion((v) => v + 1);
+          }}
+        />
       </View>
     </AppCtx.Provider>
   );
@@ -623,8 +1164,10 @@ function Root() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <Root />
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <Root />
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
