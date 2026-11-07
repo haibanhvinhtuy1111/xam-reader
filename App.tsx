@@ -17,7 +17,82 @@ import { initConfig, refreshRemoteDomain, setDomain, setUseProxy, useConfig } fr
 import { UA, clearCookies, fetchHtml, hasClearance, imageSource, isCloudflare, syncCookiesFromWebView } from './src/services/http';
 import { fetchLatest, scrapeThread, searchForum } from './src/services/scraper';
 import { MediaItem, ThreadItem, hostOf } from './src/services/parser';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
+import { fetchHtml } from '../services/http'; // Lấy hàm fetch trực tiếp của bạn
+import { CloudflareWebView } from '../components/CloudflareWebView';
 
+export default function HomeScreen() {
+  const [data, setData] = useState<string>(''); // Chứa HTML hoặc data bóc tách
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCFChallenge, setShowCFChallenge] = useState(false);
+  
+  // Lấy domain từ file cấu hình của bạn (hoặc fix cứng tùy bạn)
+  const targetDomain = 'https://xamvn.work'; 
+
+  // Hàm gọi API lấy dữ liệu
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      // ⚠️ GỌI TRỰC TIẾP URL GỐC, KHÔNG GỌI QUA VERCEL NỮA
+      const url = `${targetDomain}/forums/`; 
+      const result = await fetchHtml(url); 
+      
+      console.log('✅ Tải data thành công!');
+      setData(result.html); // Lưu HTML hoặc parse ra danh sách tùy logic của bạn
+      
+    } catch (error: any) {
+      // KIỂM TRA LỖI DO FILE http.ts NÉM RA
+      if (error.code === 'CF') {
+        console.log('🚨 Bị chặn bởi Cloudflare, đang bật WebView...');
+        setShowCFChallenge(true); // Hiện màn hình bắt user tick Captcha
+      } else {
+        console.error('❌ Lỗi khác:', error.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Khởi chạy loadData khi vừa vào màn hình
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      {/* 1. NẾU ĐANG BỊ CHẶN -> HIỂN THỊ WEBVIEW LÊN Đỉnh */}
+      {showCFChallenge && (
+        <CloudflareWebView 
+          domain={targetDomain}
+          onSuccess={() => {
+            console.log('🎉 Tick Captcha xong! Đóng WebView và gọi lại API.');
+            setShowCFChallenge(false); // Ẩn WebView
+            loadData(); // Tự động load lại danh sách bài viết
+          }}
+        />
+      )}
+
+      {/* 2. GIAO DIỆN BÌNH THƯỜNG CỦA APP */}
+      {isLoading ? (
+        <Text style={styles.text}>Đang tải dữ liệu...</Text>
+      ) : (
+        <View>
+          <Button title="Tải lại trang" onPress={loadData} />
+          {/* Render danh sách bài viết ở đây... */}
+          <Text numberOfLines={10} style={styles.text}>
+            {data ? data : "Chưa có dữ liệu"}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, paddingTop: 50 },
+  text: { padding: 20 }
+});
 /* ───────────── Theme & Styles ───────────── */
 const C = {
   bg: '#F8F9F5',
