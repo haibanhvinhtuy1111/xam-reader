@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xam Reader PWA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#1E4631',
+                        bg: '#F8F9F5',
+                        chip: '#EEF0EA',
+                        soft: '#E8EFE9'
+                    }
+                }
+            }
+        }
+    </script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body class="bg-[#F8F9F5] text-[#111827] font-sans select-none pb-28">
+
+    <!-- Header Tiêu đề -->
+    <div id="header-title" class="px-5 pt-12 pb-4 text-3xl font-extrabold text-[#111827]">
+        Tìm toàn diễn đàn
+    </div>
+
+    <!-- Nội dung các Tab -->
+    <main class="px-5">
+        <!-- TAB 1: TÌM KIẾM -->
+        <div id="tab-search" class="tab-content space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-brand font-bold">🔍</div>
+                    <div>
+                        <h2 class="font-bold text-base">Bạn muốn tìm gì?</h2>
+                        <p class="text-xs text-gray-500">Tìm kiếm nhanh chóng trên diễn đàn.</p>
+                    </div>
+                </div>
+                <input type="text" id="search-input" placeholder="Nhập từ khóa chủ đề..." class="w-full h-12 bg-gray-50 rounded-2xl px-4 text-sm outline-none border border-gray-200 focus:border-brand">
+                
+                <button onclick="handleSearch()" class="w-full mt-4 h-12 bg-brand text-white font-bold rounded-full shadow-md active:scale-95 transition">
+                    Tìm kiếm
+                </button>
+            </div>
+
+            <!-- Kết quả tìm kiếm -->
+            <div id="search-results" class="space-y-3 mt-4">
+                <!-- Danh sách kết quả render ở đây -->
+            </div>
+        </div>
+
+        <!-- TAB 2: MỚI NHẤT -->
+        <div id="tab-latest" class="tab-content hidden space-y-3">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-gray-700">Bài viết mới cập nhật</h3>
+                <button onclick="loadLatest()" class="text-xs text-brand font-bold bg-emerald-50 px-3 py-1.5 rounded-full">Làm mới</button>
+            </div>
+            <div id="latest-results" class="space-y-3">
+                <p class="text-center text-gray-400 py-10">Đang tải danh sách bài mới...</p>
+            </div>
+        </div>
+
+        <!-- TAB 3: DANH MỤC -->
+        <div id="tab-category" class="tab-content hidden space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div onclick="switchTab('search')" class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between h-36 active:scale-95 transition cursor-pointer">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-brand">📄</div>
+                    <div>
+                        <h4 class="font-bold text-sm">Tìm bài viết</h4>
+                        <p class="text-[11px] text-gray-500">Theo từ khóa</p>
+                    </div>
+                </div>
+                <div onclick="alert('Tính năng đang phát triển')" class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between h-36 active:scale-95 transition cursor-pointer">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-brand">🖼️</div>
+                    <div>
+                        <h4 class="font-bold text-sm">Lọc ảnh/video</h4>
+                        <p class="text-[11px] text-gray-500">Từ liên kết bài</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: THÊM / CÀI ĐẶT -->
+        <div id="tab-more" class="tab-content hidden space-y-4">
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <h3 class="font-bold text-base">Cấu hình Tên miền</h3>
+                <p class="text-xs text-gray-500">Thay đổi domain diễn đàn bạn muốn kết nối.</p>
+                <input type="text" id="setting-domain" value="https://xamvn.casa" class="w-full h-12 bg-gray-50 rounded-2xl px-4 text-sm outline-none border border-gray-200">
+                <button onclick="saveSettings()" class="w-full h-12 bg-brand text-white font-bold rounded-full">Lưu cài đặt</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Thanh Tab Bar nổi phía dưới -->
+    <nav class="fixed bottom-4 left-4 right-4 bg-white h-16 rounded-full shadow-lg border border-gray-100 flex items-center justify-around px-2 z-50">
+        <button onclick="switchTab('search')" class="tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-brand bg-emerald-50" data-tab="search">
+            <span class="text-lg">🔍</span>
+            <span class="text-[10px] font-bold mt-0.5">Tìm kiếm</span>
+        </button>
+        <button onclick="switchTab('latest')" class="tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-gray-400" data-tab="latest">
+            <span class="text-lg">⚡</span>
+            <span class="text-[10px] font-medium mt-0.5">Mới nhất</span>
+        </button>
+        <button onclick="switchTab('category')" class="tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-gray-400" data-tab="category">
+            <span class="text-lg">⊞</span>
+            <span class="text-[10px] font-medium mt-0.5">Danh mục</span>
+        </button>
+        <button onclick="switchTab('more')" class="tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-gray-400" data-tab="more">
+            <span class="text-lg">⚙️</span>
+            <span class="text-[10px] font-medium mt-0.5">Thêm</span>
+        </button>
+    </nav>
+
+    <!-- JavaScript xử lý giao diện & logic -->
+    <script>
+        const titles = {
+            search: 'Tìm toàn diễn đàn',
+            latest: 'Bài viết mới nhất',
+            category: 'Danh mục',
+            more: 'Cài đặt hệ thống'
+        };
+
+        function switchTab(tabName) {
+            // Ẩn tất cả tab
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Hiện tab được chọn
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            
+            // Đổi tiêu đề header
+            document.getElementById('header-title').innerText = titles[tabName];
+
+            // Đổi style nút tab bar
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.tab === tabName) {
+                    btn.className = "tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-brand bg-emerald-50";
+                } else {
+                    btn.className = "tab-btn flex-1 flex flex-col items-center justify-center py-2 rounded-full text-gray-400";
+                }
+            });
+
+            if(tabName === 'latest') {
+                loadLatest();
+            }
+        }
+
+        async function handleSearch() {
+            const keyword = document.getElementById('search-input').value.trim();
+            const resultsDiv = document.getElementById('search-results');
+            if(!keyword) return alert('Vui lòng nhập từ khóa tìm kiếm!');
+
+            resultsDiv.innerHTML = `<p class="text-center text-gray-400 py-6">Đang tìm kiếm...</p>`;
+            
+            // Giả lập kết quả hiển thị mượt mà trên PWA
+            setTimeout(() => {
+                resultsDiv.innerHTML = `
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <h4 class="font-bold text-sm text-brand">Kết quả cho: "${keyword}"</h4>
+                        <p class="text-xs text-gray-600 mt-1">Chủ đề thảo luận mẫu số 1 liên quan đến ${keyword}...</p>
+                    </div>
+                `;
+            }, 600);
+        }
+
+        function loadLatest() {
+            const latestDiv = document.getElementById('latest-results');
+            latestDiv.innerHTML = `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <h4 class="font-bold text-sm">Cập nhật danh sách chủ đề mới</h4>
+                    <p class="text-xs text-gray-500 mt-1">Đã kết nối máy chủ thành công.</p>
+                </div>
+            `;
+        }
+
+        function saveSettings() {
+            alert('Đã lưu cấu hình thành công!');
+        }
+    </script>
+</body>
+</html>
