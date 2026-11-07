@@ -1,9 +1,9 @@
 name: Build Unsigned IPA
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -38,16 +38,18 @@ jobs:
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGNING_IDENTITY=""
 
-      - name: Package to IPA
+      - name: Package unsigned IPA on macOS
         run: |
           mkdir -p Payload
-          cp -r ios/build/Build/Products/Release-iphoneos/*.app Payload/
-          zip -r HayhoXamReader.ipa Payload
+          APP_PATH=$(find ios/build -name "*.app" -type d | head -n 1)
+          cp -R "$APP_PATH" Payload/
+          chmod -R 755 Payload/
+          zip -qry XamReader.ipa Payload
 
-      - name: Upload IPA artifact
+      - name: Upload Unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: HayhoXamReader-Unsigned-IPA
-          path: HayhoXamReader.ipa
+          name: XamReader-unsigned-ipa
+          path: XamReader.ipa
