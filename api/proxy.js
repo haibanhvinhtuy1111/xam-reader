@@ -10,13 +10,19 @@ const serCk = (o) => Object.entries(o).map(([k, v]) => `${k}=${v}`).join('; ');
 /**
  * POST /api/proxy  { url, method?, body?, contentType?, cookie?, ua? }
  * -> { status, url (sau redirect), html, cookies (cookie mới server set) }
- * Tự theo redirect thủ công (kiểm tra SSRF ở từng bước) và giữ cookie giữa các bước,
- * để luồng tìm kiếm XenForo (GET /search/ -> POST -> 303) chạy đúng.
  */
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Chỉ nhận POST' });
   if (!authorized(req.headers['x-key'])) return res.status(401).json({ error: 'Sai hoặc thiếu khóa truy cập (ACCESS_KEY)' });
+
+  // NÂNG CẤP 1: Quản lý luồng bằng AbortController để chống rò rỉ tài nguyên (Memory Leak)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new Error('Timeout')), 20000);
+  req.on('close', () => {
+    clearTimeout(timeoutId);
+    controller.abort();
+  });
 
   try {
     const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
@@ -31,22 +37,43 @@ module.exports = async (req, res) => {
       const u = await assertPublic(cur);
       const headers = {
         'user-agent': String(b.ua || UA),
-        accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
-        'accept-language': 'vi-VN,vi;q=0.9,en;q=0.8',
-        referer: u.origin + '/',
+        // NÂNG CẤP 2: Bổ sung bộ sec-fetch-* giúp lừa Cloudflare đây là người dùng thật
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'accept-language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        'referer': u.origin + '/',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin'
       };
       if (Object.keys(jar).length) headers.cookie = serCk(jar);
       if (body !== undefined) {
         headers['content-type'] = String(b.contentType || 'application/x-www-form-urlencoded');
-        headers.origin = u.origin;
+        headers['origin'] = u.origin;
       }
 
-      const r = await fetch(u, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+      const r = await fetch(u, { 
+        method, 
+        headers, 
+        body, 
+        redirect: 'manual', 
+        signal: controller.signal 
+      });
 
-      for (const sc of r.headers.getSetCookie ? r.headers.getSetCookie() : []) {
+      // NÂNG CẤP 3: Lấy cookie an toàn tương thích mọi phiên bản Node.js/Edge của Vercel
+      const setCookies = typeof r.headers.getSetCookie === 'function' 
+        ? r.headers.getSetCookie() 
+        : (r.headers.get('set-cookie') || '').split(/,(?=\s*[A-Za-z0-9_-]+\s*=)/); // Fallback Regex cắt mảng cookie chuẩn
+        
+      for (const sc of setCookies) {
+        if (!sc) continue;
         const pair = sc.split(';')[0];
         const i = pair.indexOf('=');
-        if (i > 0) { const n = pair.slice(0, i).trim(); const v = pair.slice(i + 1).trim(); jar[n] = v; fresh[n] = v; }
+        if (i > 0) { 
+          const n = pair.slice(0, i).trim(); 
+          const v = pair.slice(i + 1).trim(); 
+          jar[n] = v; 
+          fresh[n] = v; 
+        }
       }
 
       const loc = r.headers.get('location');
@@ -57,12 +84,25 @@ module.exports = async (req, res) => {
         continue;
       }
 
+      clearTimeout(timeoutId);
       const html = await r.text();
-      if (html.length > 4_000_000) throw new Error('Trang quá lớn (>4MB), Vercel không trả về được');
+      
+      // NÂNG CẤP 4: Tính bằng Byte thật, bảo vệ proxy khỏi lỗi 500 Payload Too Large
+      if (Buffer.byteLength(html, 'utf8') > 4_200_000) {
+        throw new Error('Trang diễn đàn quá nặng (>4MB), nền tảng Vercel từ chối trả kết quả');
+      }
+      
       return res.status(200).json({ status: r.status, url: u.href, html, cookies: fresh });
     }
+    
+    clearTimeout(timeoutId);
     throw new Error('Quá nhiều lần chuyển hướng');
   } catch (e) {
-    return res.status(502).json({ error: String((e && e.message) || e) });
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') return res.end(); 
+    
+    // Xử lý báo lỗi tường minh hơn khi bị Cloudflare ngâm kết nối
+    const msg = e.message === 'Timeout' ? 'Vượt quá thời gian chờ (20s) - diễn đàn hoặc Cloudflare phản hồi quá chậm' : String((e && e.message) || e);
+    return res.status(502).json({ error: msg });
   }
 };
