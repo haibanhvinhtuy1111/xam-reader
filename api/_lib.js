@@ -2,8 +2,9 @@ const dns = require('dns').promises;
 const net = require('net');
 const crypto = require('crypto');
 
+// Đã nâng cấp lên User-Agent của iOS 18 mới nhất để qua Cloudflare dễ hơn
 const UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 
 /** Chặn địa chỉ nội bộ (SSRF): localhost, mạng LAN, metadata cloud... */
 function isPrivateIp(ip) {
@@ -29,12 +30,18 @@ async function assertPublic(urlStr) {
   try { u = new URL(urlStr); } catch { throw new Error('URL không hợp lệ'); }
   if (!/^https?:$/.test(u.protocol)) throw new Error('Chỉ hỗ trợ http/https');
   if (u.port && u.port !== '80' && u.port !== '443') throw new Error('Cổng không được phép');
+  
+  // SỬA LỖI: Gỡ bỏ ngoặc vuông của IPv6 (VD: [::1] -> ::1) để net.isIP nhận diện chuẩn xác
+  const rawHost = u.hostname.replace(/^\[|\]$/g, '');
+
   const allow = (process.env.ALLOWED_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (allow.length && !allow.some((h) => u.hostname === h || u.hostname.endsWith('.' + h))) {
+  if (allow.length && !allow.some((h) => rawHost === h || rawHost.endsWith('.' + h))) {
     throw new Error('Tên miền không nằm trong ALLOWED_HOSTS');
   }
-  const ips = net.isIP(u.hostname) ? [{ address: u.hostname }] : await dns.lookup(u.hostname, { all: true });
+  
+  const ips = net.isIP(rawHost) ? [{ address: rawHost }] : await dns.lookup(rawHost, { all: true });
   if (!ips.length || ips.some((x) => isPrivateIp(x.address))) throw new Error('Địa chỉ nội bộ bị chặn');
+  
   return u;
 }
 
@@ -44,6 +51,7 @@ function authorized(provided) {
   if (!k) return true;
   const a = Buffer.from(String(provided || ''));
   const b = Buffer.from(k);
+  // Dùng timingSafeEqual chống tấn công dò mật khẩu qua thời gian phản hồi (Timing Attack)
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
