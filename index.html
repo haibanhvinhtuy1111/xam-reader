@@ -1,813 +1,693 @@
-<!DOCTYPE html>
-<html lang="vi" data-theme="dark">
+<!doctype html>
+<html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Xam Reader Pro</title>
-  <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="/icon-180.png" />
-  <style>
-    :root[data-theme="dark"] {
-      --bg: #0f1115;
-      --surface: #181b22;
-      --surface-hover: #222630;
-      --border: #2a2f3d;
-      --text: #e4e6eb;
-      --text-muted: #8b92a5;
-      --accent: #3b82f6;
-      --accent-soft: rgba(59, 130, 246, 0.15);
-      --op-badge: #f59e0b;
-    }
-    :root[data-theme="sepia"] {
-      --bg: #f4ecd8;
-      --surface: #fdf6e3;
-      --surface-hover: #eee8d5;
-      --border: #dcd3bc;
-      --text: #433422;
-      --text-muted: #7c6f5a;
-      --accent: #b58900;
-      --accent-soft: rgba(181, 137, 0, 0.15);
-      --op-badge: #cb4b16;
-    }
-    :root[data-theme="light"] {
-      --bg: #f3f4f6;
-      --surface: #ffffff;
-      --surface-hover: #f9fafb;
-      --border: #e5e7eb;
-      --text: #111827;
-      --text-muted: #6b7280;
-      --accent: #2563eb;
-      --accent-soft: rgba(37, 99, 235, 0.12);
-      --op-badge: #d97706;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: var(--font-size, 16px);
-      line-height: 1.6;
-    }
-
-    /* Header & Thanh Forum ngang */
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 14px;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-    .brand {
-      font-weight: 700;
-      font-size: 1.1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .actions { display: flex; gap: 8px; }
-    button, .btn {
-      background: var(--surface-hover);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 6px 11px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      transition: 0.15s;
-    }
-    button:hover, button.active {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    /* Thanh cuộn chọn Forum nhanh */
-    .forum-bar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 8px 14px;
-      max-width: 960px;
-      margin: 0 auto;
-      scrollbar-width: none;
-      border-top: 1px solid var(--border);
-    }
-    .forum-bar::-webkit-scrollbar { display: none; }
-    .forum-pill {
-      white-space: nowrap;
-      padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 0.82rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-    .forum-pill.active {
-      background: var(--accent-soft);
-      color: var(--accent);
-      border-color: var(--accent);
-      font-weight: 600;
-    }
-
-    /* Container chính */
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-
-    /* Danh sách thớt */
-    .thread-toolbar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .search-input {
-      flex: 1;
-      min-width: 180px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 7px 12px;
-      border-radius: 8px;
-    }
-    .thread-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .thread-item:hover { background: var(--surface-hover); }
-    .thread-title {
-      font-weight: 600;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .prefix-badge {
-      font-size: 0.72rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-    .resume-badge {
-      font-size: 0.72rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-    }
-    .thread-meta {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    /* Giao diện đọc bài (Post) */
-    .reader-StickyBar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      background: var(--surface);
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      margin-bottom: 12px;
-    }
-    .post-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .post-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      margin-bottom: 10px;
-    }
-    .post-author { font-weight: 700; color: var(--text); }
-    .op-tag {
-      background: var(--op-badge);
-      color: #000;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 4px;
-      margin-left: 6px;
-    }
-    .post-body img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-      margin: 8px 0;
-      cursor: zoom-in;
-    }
-    .post-body blockquote {
-      background: var(--bg);
-      border-left: 3px solid var(--accent);
-      padding: 8px 12px;
-      margin: 8px 0;
-      border-radius: 4px;
-      font-size: 0.92em;
-      color: var(--text-muted);
-    }
-
-    /* Lưới xem ảnh nhanh */
-    .media-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .media-grid img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-      border-radius: 8px;
-      cursor: pointer;
-      border: 1px solid var(--border);
-    }
-
-    /* Modal / Drawer */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 16px;
-    }
-    .modal-backdrop.open { display: flex; }
-    .modal-content {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      max-width: 600px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      padding: 18px;
-    }
-    .forum-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .forum-card {
-      padding: 10px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .forum-card:hover { border-color: var(--accent); }
-    .pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
-      margin: 18px 0;
-      flex-wrap: wrap;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#F8F9F5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="XamReader">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="icon" href="/icon-192.png">
+<title>Xam Reader</title>
+<style>
+:root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:3;
+--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--barb:max(12px,calc(var(--sab) - 10px));--shadow:0 6px 14px rgba(11,31,20,.07)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;padding:0}
+input,textarea,select{font-size:16px}
+#app{max-width:560px;margin:0 auto}
+.screen{display:none;min-height:100dvh;padding:calc(var(--sat) + 8px) 20px calc(64px + var(--barb) + 32px)}
+.screen.on{display:block}
+h1{font-size:32px;font-weight:800;letter-spacing:-.5px;margin:0 0 12px}
+.row{display:flex;align-items:center}.gap{gap:8px}.grow{flex:1;min-width:0}
+.muted{color:var(--muted)}small,.sm{font-size:13px}
+.t17{font-size:17px}.b{font-weight:700}
+.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clip2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+p{margin:2px 0 0}
+.card{background:#fff;border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.ibox{width:40px;height:40px;border-radius:16px;background:var(--soft);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}
+.circle{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+input[type=text],input[type=url],input[type=password],textarea,select{width:100%;margin-top:14px;background:var(--input);border:0;border-radius:16px;padding:0 16px;height:48px;outline:none}
+textarea{padding:12px 16px;height:84px;resize:none}
+select{appearance:none;-webkit-appearance:none}
+label.f{display:block;margin-top:14px;font-weight:600;font-size:14px}
+label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
+.btn{width:100%;height:48px;border-radius:24px;background:var(--brand);color:#fff;font-weight:700;font-size:16px;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn.soft{background:var(--chip);color:var(--brand);font-weight:600;font-size:15px;height:44px;border-radius:22px;margin-top:8px}
+.btn:disabled{opacity:.6}
+.btn.sm2{width:auto;display:inline-flex;height:36px;padding:0 16px;font-size:13px;margin-top:10px}
+.seg{display:flex;background:var(--chip);border-radius:999px;padding:4px;margin-top:14px}
+.seg button{flex:1;padding:10px 4px;border-radius:999px;font-weight:600;font-size:14px}
+.seg button.on{background:var(--brand);color:#fff}
+.acc{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:16px;padding:4px 0;font-weight:600}
+.acc svg{transition:transform .2s}.acc.open svg{transform:rotate(180deg)}
+.dd{position:relative}
+.dd>button{width:100%;margin-top:12px;height:48px;border:1px solid var(--line);border-radius:16px;padding:0 16px;display:flex;align-items:center;justify-content:space-between}
+.dd-menu{margin-top:4px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+.dd-menu button{display:block;width:100%;text-align:left;padding:12px 16px}
+.dd-menu button.on{background:var(--soft);color:var(--brand);font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chips:empty{display:none}
+.chips button{background:var(--chip);border-radius:999px;padding:6px 12px;font-size:13px}
+.warn{background:var(--warn);border:1px solid #F3E3C7;border-radius:24px;padding:16px;display:flex;gap:12px;margin-bottom:16px}
+.warn svg{color:#EA8A1C;flex:none}
+.warn.ok svg{color:#2E7D4F}.warn.bad svg{color:#DC2626}
+.err{color:#DC2626;font-size:14px;padding:4px}
+.rowc{display:flex;align-items:center;gap:12px;padding:16px;margin-bottom:12px;cursor:pointer}
+.rowc b{font-weight:600}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.cats .card{margin:0;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer}
+.cats .ibox{width:48px;height:48px}
+.sw{position:relative;width:51px;height:31px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:1}
+.sw span{position:absolute;inset:0;background:#D1D5DB;border-radius:99px;transition:.2s}
+.sw span:after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:.2s}
+.sw input:checked+span{background:var(--brand)}.sw input:checked+span:after{transform:translateX(20px)}
+.hr{height:1px;background:var(--line);margin:14px 0}
+.spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+.spin.d{border-color:rgba(30,70,49,.25);border-top-color:var(--brand)}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* tab bar nổi dạng viên thuốc */
+#tabs{position:fixed;z-index:20;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:528px;bottom:var(--barb);height:64px;border-radius:32px;background:#fff;box-shadow:0 10px 30px rgba(11,31,20,.16);display:flex;align-items:center;padding:0 8px}
+#tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
+#tabs button.on{background:var(--brand);color:#fff}
+/* overlay: thư viện, lightbox, video */
+.ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}
+.ov.dark{background:#000;z-index:40;color:#fff}
+.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 6px) 12px 10px}
+.rbtn{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
+.rbtn.dim{background:rgba(0,0,0,.55);color:#fff;box-shadow:none}
+.rbtn.on{background:var(--brand);color:#fff}
+.pad{padding:0 16px 8px}
+.bar{height:3px;background:var(--chip);border-radius:3px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .25s}
+.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px)}
+.grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:3px}
+.tile{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#E5E7EB;display:flex;flex-direction:column;align-items:center;justify-content:center;content-visibility:auto;contain-intrinsic-size:120px}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tile.vid{background:var(--ink);color:#fff;gap:4px}.tile.vid small{font-size:10px;opacity:.7;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.bad{color:var(--muted);font-size:11px;text-align:center;padding:6px}
+.stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}
+.stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;will-change:transform}
+.lb-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sat) + 6px) 14px 0;z-index:2;pointer-events:none}
+.lb-top>*{pointer-events:auto}
+.pill{background:rgba(0,0,0,.55);color:#fff;padding:8px 16px;border-radius:20px;font-weight:600;font-size:14px;text-decoration:none}
+.nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:44px;height:64px;font-size:34px;color:#fff;background:rgba(0,0,0,.35);border-radius:12px}
+.nav.l{left:8px}.nav.r{right:8px}
+@media (hover:none){.nav{display:none}}
+.vm-body{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.vm-body video,.vm-body iframe{width:100%;max-height:100%;aspect-ratio:16/9;border:0;background:#000}
+#toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);bottom:calc(64px + var(--barb) + 16px);background:rgba(17,24,39,.92);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;max-width:86%;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+.kv{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
+</style>
 </head>
 <body>
+<main id="app">
 
-<header>
-  <div class="topbar">
-    <div class="brand" onclick="loadForum(state.currentForumPath)">
-      <span>⚡ XamReader Pro</span>
+<section class="screen on" id="s-search">
+  <h1>Tìm toàn diễn đàn</h1>
+  <div class="card">
+    <div class="row gap" style="gap:12px">
+      <div class="ibox"><i data-ic="zoom-in"></i></div>
+      <div class="grow"><b class="t17">Bạn muốn tìm gì?</b><p class="muted sm">Tìm đồng thời bài mới và kho chủ đề cũ trên cả hai nguồn.</p></div>
     </div>
-    <div class="actions">
-      <button onclick="openForumsModal()" title="Danh sách tất cả Forums">📂 Chuyên mục</button>
-      <button onclick="toggleBookmarksView()" id="btnBookmarks">🔖 Đã lưu</button>
-      <button onclick="openSettingsModal()">⚙️ Cài đặt</button>
+    <input type="text" id="q" placeholder="Nhập từ khóa chủ đề" enterkeyhint="search" autocapitalize="none" autocomplete="off" autocorrect="off">
+    <div class="chips" id="hist"></div>
+    <div class="seg" id="seg-by"><button data-v="kw" class="on">Từ khóa</button><button data-v="au">Tác giả</button></div>
+    <button class="acc" id="acc">Tùy chọn tìm kiếm <i data-ic="chevron-down"></i></button>
+    <div id="opts" hidden>
+      <div class="seg" id="seg-match" style="margin-top:6px"><button data-v="contain" class="on">Có chứa</button><button data-v="exact">Chính xác</button></div>
+      <div class="seg" id="seg-scope"><button data-v="thread" class="on">Tiêu đề chủ đề</button><button data-v="post">Nội dung bình luận</button></div>
+      <div class="dd"><button id="dd-btn"><span id="dd-lab">Phù hợp nhất</span><i data-ic="chevron-down" data-s="18"></i></button>
+        <div class="dd-menu" id="dd-menu" hidden><button data-v="relevance" class="on">Phù hợp nhất</button><button data-v="date">Mới nhất</button><button data-v="replies">Nhiều bình luận</button></div></div>
     </div>
+    <button class="btn" id="go">Tìm kiếm</button>
   </div>
-  <!-- Thanh cuộn ngang các Forum ghim -->
-  <div class="forum-bar" id="pinnedForumsBar"></div>
-</header>
+  <div class="warn" id="status"><i data-ic="alert-triangle" data-s="22"></i><div class="grow"><b id="st-t">Đang kiểm tra kết nối</b><p class="muted sm" id="st-d"></p><div id="st-a"></div></div></div>
+  <div id="results"></div>
+</section>
 
-<main id="appMain">
-  <!-- Nội dung động render tại đây -->
+<section class="screen" id="s-latest">
+  <div class="row" style="justify-content:space-between"><h1>Mới nhất</h1><button class="rbtn" id="l-refresh" aria-label="Làm mới"><i data-ic="refresh"></i></button></div>
+  <div id="latest"></div>
+</section>
+
+<section class="screen" id="s-cat">
+  <h1>Danh mục</h1>
+  <div class="cats">
+    <button class="card" data-c="link"><div class="ibox"><i data-ic="image" data-s="24"></i></div><div><b>Lọc ảnh/video</b><p class="muted sm">Từ link hoặc bài viết</p></div></button>
+    <button class="card" data-c="kw"><div class="ibox"><i data-ic="file-text" data-s="24"></i></div><div><b>Tìm bài viết</b><p class="muted sm">Theo từ khóa</p></div></button>
+    <button class="card" data-c="au"><div class="ibox"><i data-ic="user" data-s="24"></i></div><div><b>Tìm theo người đăng</b><p class="muted sm">Theo tên tác giả</p></div></button>
+    <button class="card" data-c="post"><div class="ibox"><i data-ic="message" data-s="24"></i></div><div><b>Tìm bình luận</b><p class="muted sm">Trong nội dung bài</p></div></button>
+    <button class="card" data-c="recent"><div class="ibox"><i data-ic="history" data-s="24"></i></div><div><b>Đã xem gần đây</b><p class="muted sm">30 chủ đề gần nhất</p></div></button>
+    <button class="card" data-c="saved"><div class="ibox"><i data-ic="bookmark" data-s="24"></i></div><div><b>Đã lưu</b><p class="muted sm">Chủ đề bạn đánh dấu</p></div></button>
+  </div>
+  <div class="card" id="p-link" hidden>
+    <b>Dán link bài viết</b>
+    <input type="url" id="link" placeholder="https://xamvn.work/threads/..." autocapitalize="none" autocorrect="off">
+    <div class="row gap"><button class="btn soft" id="paste" style="flex:1">Dán từ clipboard</button><button class="btn" id="scan" style="flex:1;margin-top:8px;height:44px">Quét ảnh &amp; video</button></div>
+  </div>
+  <div id="cat-list"></div>
+</section>
+
+<section class="screen" id="s-more">
+  <h1>Thêm</h1>
+
+  <div class="card">
+    <div class="row gap"><i data-ic="globe"></i><b>Tên miền diễn đàn</b></div>
+    <input type="url" id="set-domain" autocapitalize="none" autocorrect="off">
+    <p class="kv" id="dom-note"></p>
+    <button class="btn" id="dom-save">Lưu domain</button>
+    <label class="f">File cấu hình domain tự động (GitHub Raw)
+      <input type="url" id="set-remote" placeholder="https://raw.githubusercontent.com/.../domain.json" autocapitalize="none"></label>
+    <p class="kv">Nội dung file: <code>{"domain":"https://xamvn.xyz","fallbacks":["https://xamvn.com"]}</code></p>
+    <button class="btn soft" id="dom-sync">Cập nhật domain ngay</button>
+  </div>
+
+  <div class="card">
+    <div class="row gap"><i data-ic="shield"></i><b>Proxy &amp; Cloudflare</b></div>
+    <p class="muted sm" style="margin-top:8px">Mọi trang diễn đàn được tải qua proxy trên Vercel của bạn (vượt CORS, vượt chặn nhà mạng).</p>
+    <label class="f">Địa chỉ proxy<input type="text" id="set-proxy" autocapitalize="none" autocorrect="off"></label>
+    <label class="f">Khóa truy cập (nếu bạn đã đặt <code>ACCESS_KEY</code>)<input type="password" id="set-key" autocomplete="off"></label>
+    <label class="f">Cookie (tùy chọn: <code>cf_clearance</code>, <code>xf_user</code>...)<textarea id="set-cookie" placeholder="cf_clearance=...; xf_user=..." autocapitalize="none" autocorrect="off"></textarea></label>
+    <label class="f">User-Agent (cần khớp trình duyệt đã lấy cookie)<input type="text" id="set-ua" placeholder="Để trống = mặc định" autocapitalize="none" autocorrect="off"></label>
+    <button class="btn" id="test">Kiểm tra kết nối</button>
+    <p class="kv" id="test-out"></p>
+  </div>
+
+  <div class="card">
+    <div class="row gap"><i data-ic="image"></i><b>Hiển thị ảnh</b></div>
+    <label class="f">Nguồn ảnh
+      <select id="set-img">
+        <option value="auto">Tự động (thử trực tiếp → wsrv.nl → proxy riêng)</option>
+        <option value="direct">Trực tiếp (không gửi Referer)</option>
+        <option value="wsrv">Qua wsrv.nl</option>
+        <option value="own">Qua proxy Vercel (gắn Referer diễn đàn)</option>
+      </select></label>
+    <div class="row" style="margin-top:16px"><div class="grow"><b>Thu nhỏ ảnh xem trước</b><p class="muted sm">Qua wsrv.nl, nhẹ hơn khi dùng 4G.</p></div><label class="sw"><input type="checkbox" id="set-thumbs"><span></span></label></div>
+    <label class="f">Số cột trong lưới
+      <select id="set-cols"><option value="2">2 cột</option><option value="3">3 cột</option><option value="4">4 cột</option></select></label>
+  </div>
+
+  <div class="card">
+    <div class="row gap"><i data-ic="trash"></i><b>Dữ liệu</b></div>
+    <button class="btn soft" id="clr-hist">Xóa lịch sử xem &amp; tìm kiếm</button>
+    <button class="btn soft" id="clr-jar">Xóa cookie phiên của proxy</button>
+    <p class="kv"><b>Cài lên màn hình chính (iPhone):</b> mở trang này bằng Safari → nút Chia sẻ → <i>Thêm vào Màn hình chính</i>. App sẽ chạy toàn màn hình như app thật.<br>
+    <b>Mở nhanh từ bài viết:</b> tạo bookmark Safari có địa chỉ <code>javascript:location='https://TEN-MIEN-CUA-BAN/?u='+encodeURIComponent(location.href)</code> rồi bấm khi đang xem bài trên diễn đàn.</p>
+  </div>
+</section>
 </main>
 
-<!-- Modal Chọn Danh Mục Forums -->
-<div class="modal-backdrop" id="forumsModal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <h3>📂 Duyệt theo từng Forum (Box)</h3>
-      <button onclick="scanForumsFromHome()">🔄 Quét tự động từ Trang chủ</button>
-    </div>
-    <p style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">
-      Chọn chuyên mục để xem hoặc bấm biểu tượng 📌 để ghim lên thanh ngang.
-    </p>
-    <div class="forum-grid" id="allForumsList"></div>
-  </div>
+<nav id="tabs">
+  <button data-t="search" class="on"><i data-ic="search"></i><span>Tìm kiếm</span></button>
+  <button data-t="latest"><i data-ic="zap"></i><span>Mới nhất</span></button>
+  <button data-t="cat"><i data-ic="grid"></i><span>Danh mục</span></button>
+  <button data-t="more"><i data-ic="dots"></i><span>Thêm</span></button>
+</nav>
+
+<div class="ov" id="gal" hidden>
+  <header class="g-head">
+    <button class="rbtn" id="g-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
+    <div class="grow"><b class="clip t17" id="g-title" style="display:block">Đang tải…</b><small class="muted" id="g-sub"></small></div>
+    <button class="rbtn" id="g-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
+    <button class="rbtn" id="g-copy" aria-label="Sao chép link ảnh"><i data-ic="copy" data-s="20"></i></button>
+  </header>
+  <div class="pad"><div class="seg" id="g-seg" style="margin-top:4px"><button data-v="all" class="on">Tất cả</button><button data-v="image">Ảnh</button><button data-v="video">Video</button></div>
+    <div class="bar" id="g-bar"><i></i></div></div>
+  <div class="g-scroll"><div id="g-msg"></div><div class="grid" id="g-grid"></div></div>
 </div>
 
-<!-- Modal Cài Đặt & Tối Ưu -->
-<div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal-content">
-    <h3>⚙️ Tùy chỉnh & Tối ưu</h3>
-    <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;">
-      <label>
-        Giao diện (Theme):
-        <select id="themeSelect" onchange="updateSetting('theme', this.value)" class="search-input" style="margin-top:4px;">
-          <option value="dark">Dark (Tối OLED)</option>
-          <option value="sepia">Sepia (Vàng dịu mắt)</option>
-          <option value="light">Light (Sáng)</option>
-        </select>
-      </label>
-      <label>
-        Cỡ chữ đọc bài:
-        <input type="range" min="14" max="22" id="fontSizeRange" oninput="updateSetting('fontSize', this.value)" style="width:100%;" />
-      </label>
-      <label>
-        Tên miền nguồn (Dynamic Domain):
-        <input type="text" id="domainInput" placeholder="Ví dụ: https://xamvn.com" class="search-input" style="width:100%;margin-top:4px;" />
-      </label>
-      <label>
-        Ẩn thớt chứa từ khóa (cách nhau bởi dấu phẩy):
-        <input type="text" id="muteInput" placeholder="Ví dụ: quảng cáo, tuyển dụng, cờ bạc" class="search-input" style="width:100%;margin-top:4px;" />
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;">
-        <input type="checkbox" id="infiniteScrollToggle" onchange="updateSetting('infiniteScroll', this.checked)" />
-        Tự động tải trang tiếp theo khi cuộn xuống cuối thớt (Infinite Scroll)
-      </label>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px;">
-        <button onclick="saveSettings()">Lưu cài đặt</button>
-      </div>
-    </div>
+<div class="ov dark" id="lb" hidden>
+  <div class="stage" id="lb-stage"><img id="lb-img" alt="" draggable="false"></div>
+  <div class="lb-top">
+    <button class="rbtn dim" id="lb-close" aria-label="Đóng"><i data-ic="x"></i></button>
+    <span class="pill" id="lb-n"></span>
+    <div class="row gap"><button class="rbtn dim" id="lb-copy" aria-label="Sao chép link"><i data-ic="copy" data-s="18"></i></button><button class="rbtn dim" id="lb-dl" aria-label="Lưu ảnh"><i data-ic="download" data-s="20"></i></button></div>
   </div>
+  <button class="nav l" id="lb-prev" aria-label="Trước">‹</button><button class="nav r" id="lb-next" aria-label="Sau">›</button>
 </div>
 
-<!-- Lightbox xem ảnh -->
-<div class="modal-backdrop" id="lightboxModal" onclick="this.classList.remove('open')">
-  <img id="lightboxImg" style="max-width:95vw;max-height:92vh;border-radius:8px;" />
+<div class="ov dark" id="vm" hidden>
+  <div class="lb-top"><button class="rbtn dim" id="vm-close" aria-label="Đóng"><i data-ic="x"></i></button><a class="pill" id="vm-open" target="_blank" rel="noopener noreferrer">Mở tab mới</a></div>
+  <div class="vm-body" id="vm-body"></div>
 </div>
+<div id="toast"></div>
 
 <script>
-  // Danh sách Forums mặc định + hỗ trợ tự động quét thêm
-  const DEFAULT_FORUMS = [
-    { title: '🔥 Có gì mới', path: '/whats-new/posts/', pinned: true },
-    { title: '💬 Chuyện trò linh tinh', path: '/r/chuyen-tro-linh-tinh.2/', pinned: true },
-    { title: '📰 Điểm báo', path: '/r/diem-bao.35/', pinned: true },
-    { title: '❤️ Tư vấn tình cảm', path: '/r/tu-van-tinh-cam.15/', pinned: true },
-    { title: '💻 Công nghệ & IT', path: '/r/cong-nghe.18/', pinned: true },
-    { title: '📈 Tài chính & Tiền số', path: '/r/tai-chinh-tien-so.42/', pinned: false },
-    { title: '⚽ Thể thao', path: '/r/the-thao.28/', pinned: false },
-    { title: '📚 Văn học & Truyện', path: '/r/van-hoc.19/', pinned: false }
-  ];
+(() => {
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-  const state = {
-    forums: JSON.parse(localStorage.getItem('xr_forums')) || DEFAULT_FORUMS,
-    currentForumPath: '/whats-new/posts/',
-    threads: [],
-    currentThread: null, // { path, title, page, maxPage, opAuthor, posts, allImages }
-    opOnlyMode: false,
-    galleryMode: false,
-    bookmarks: JSON.parse(localStorage.getItem('xr_bookmarks') || '[]'),
-    history: JSON.parse(localStorage.getItem('xr_history') || '{}'),
-    settings: JSON.parse(localStorage.getItem('xr_settings') || JSON.stringify({
-      theme: 'dark',
-      fontSize: 16,
-      domain: '',
-      muteKeywords: '',
-      infiniteScroll: false
-    }))
-  };
+/* ───────── Icon (kiểu Lucide) ───────── */
+const IC = {
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'zoom-in': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/>',
+  zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  dots: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
+  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+  play: '<path d="m6 3 14 9-14 9V3z"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+  'file-text': '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>',
+  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>',
+  bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+  'arrow-left': '<path d="m12 19-7-7 7-7M19 12H5"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  trash: '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+};
+const ic = (n, s = 22, sw = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${IC[n] || ''}</svg>`;
+$$('[data-ic]').forEach((el) => { el.innerHTML = ic(el.dataset.ic, +el.dataset.s || 22); el.style.display = 'inline-flex'; });
 
-  // Áp dụng cài đặt giao diện
-  function applySettings() {
-    document.documentElement.setAttribute('data-theme', state.settings.theme);
-    document.body.style.setProperty('--font-size', state.settings.fontSize + 'px');
-  }
+/* ───────── Lưu trữ & cấu hình ───────── */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('xr.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('xr.' + k, JSON.stringify(v)); } catch {} },
+};
+const DEFAULT_DOMAIN = 'https://xamvn.work';
+const cfg = {
+  domain: store.get('domain', DEFAULT_DOMAIN), manual: store.get('manual', false), remote: store.get('remote', ''), fallbacks: store.get('fallbacks', []),
+  proxy: store.get('proxy', '/api/proxy'), key: store.get('key', ''), cookie: store.get('cookie', ''), ua: store.get('ua', ''),
+  img: store.get('img', 'auto'), thumbs: store.get('thumbs', false), cols: store.get('cols', 3),
+};
+const set = (k, v) => { cfg[k] = v; store.set(k, v); };
+let jar = store.get('jar', {});
+const toast = (() => { let t; return (m) => { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2400); }; })();
 
-  // Hàm gọi API Proxy kèm Dynamic Domain
-  async function fetchProxyHtml(path) {
-    const headers = {};
-    if (state.settings.domain) headers['x-target-domain'] = state.settings.domain;
-    const res = await fetch(`/api/proxy?path=${encodeURIComponent(path)}`, { headers });
-    if (!res.ok) throw new Error(`Lỗi tải trang (${res.status})`);
-    const html = await res.text();
-    return new DOMParser().parseFromString(html, 'text/html');
-  }
+/* ───────── Tiện ích URL ───────── */
+const hostOf = (u) => String(u).replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
+const originOf = (u) => (String(u).match(/^https?:\/\/[^/]+/i) || [''])[0];
+const normThread = (u) => { const m = u.match(/^(https?:\/\/[^/]+\/threads\/[^/?#]+)/i); return m ? m[1] : u.split('#')[0]; };
+const abs = (raw, base) => { if (!raw) return null; raw = raw.trim(); if (!raw || /^(data|javascript|blob):/i.test(raw)) return null; try { return new URL(raw, base + '/').href; } catch { return null; } };
+const normDomain = (s) => { s = (s || '').trim(); if (!s) return null; if (!/^https?:\/\//i.test(s)) s = 'https://' + s; const m = s.match(/^https?:\/\/[^/\s?#]+/i); return m ? m[0].toLowerCase() : null; };
+const rebase = (u) => { const o = originOf(u); return o && o.toLowerCase() !== cfg.domain && /\/(threads|posts|goto)\//.test(u) ? cfg.domain + u.slice(o.length) : u; };
 
-  function proxyImgUrl(rawUrl) {
-    if (!rawUrl || rawUrl.startsWith('data:')) return rawUrl;
-    const domainParam = state.settings.domain ? `&domain=${encodeURIComponent(state.settings.domain)}` : '';
-    return `/api/img?url=${encodeURIComponent(rawUrl)}${domainParam}`;
-  }
+/* ───────── Mạng: gọi diễn đàn qua proxy ───────── */
+const parseCk = (s) => Object.fromEntries((s || '').split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }));
+const cookieHeader = () => Object.entries({ ...jar, ...parseCk(cfg.cookie) }).map(([k, v]) => k + '=' + v).join('; ');
+const cfErr = () => Object.assign(new Error('Cloudflare đang chặn máy chủ proxy'), { code: 'CF' });
+const isChallenge = (h, st) => /<title>\s*(Just a moment|Attention Required)/i.test(h) || ((st === 403 || st === 503) && /cf-chl|challenge-platform|cloudflare/i.test(h));
 
-  // Render thanh Forum ngang
-  function renderPinnedForums() {
-    const bar = document.getElementById('pinnedForumsBar');
-    bar.innerHTML = state.forums
-      .filter(f => f.pinned)
-      .map(f => `
-        <div class="forum-pill ${state.currentForumPath === f.path ? 'active' : ''}"
-             onclick="loadForum('${f.path}')">
-          ${f.title}
-        </div>
-      `).join('');
-  }
+async function fx(url, { method = 'GET', body, contentType } = {}) {
+  let r;
+  try {
+    r = await fetch(cfg.proxy, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(cfg.key ? { 'x-key': cfg.key } : {}) },
+      body: JSON.stringify({ url, method, body, contentType, cookie: cookieHeader(), ua: cfg.ua || undefined }),
+    });
+  } catch (e) { throw new Error('Không gọi được proxy: ' + e.message); }
+  let j;
+  try { j = await r.json(); } catch { throw new Error('Proxy trả dữ liệu lạ (HTTP ' + r.status + '). Hãy kiểm tra thư mục api/ đã được deploy chưa.'); }
+  if (!r.ok) throw new Error(j.error || 'Proxy lỗi HTTP ' + r.status);
+  Object.assign(jar, j.cookies || {}); store.set('jar', jar);
+  if (isChallenge(j.html || '', j.status)) throw cfErr();
+  if (j.status >= 400) throw new Error('Diễn đàn trả về HTTP ' + j.status);
+  return { html: j.html, url: j.url };
+}
 
-  // Tự động quét toàn bộ danh sách Forums từ trang chủ XenForo
-  async function scanForumsFromHome() {
-    try {
-      const doc = await fetchProxyHtml('/');
-      const nodes = doc.querySelectorAll('.node--forum .node-title a, .node-body .node-title a');
-      if (!nodes.length) return alert('Không tìm thấy danh sách chuyên mục trên trang chủ.');
-
-      const discovered = [{ title: '🔥 Có gì mới', path: '/whats-new/posts/', pinned: true }];
-      const seen = new Set(['/whats-new/posts/']);
-
-      nodes.forEach((a, idx) => {
-        const path = a.getAttribute('href');
-        const title = a.textContent.trim();
-        if (path && title && !seen.has(path)) {
-          seen.add(path);
-          discovered.push({ title, path, pinned: idx < 6 });
-        }
-      });
-
-      state.forums = discovered;
-      localStorage.setItem('xr_forums', JSON.stringify(state.forums));
-      renderPinnedForums();
-      renderForumsModalList();
-    } catch (e) {
-      alert('Lỗi quét danh sách Box: ' + e.message);
-    }
-  }
-
-  // Tải danh sách thớt của một Forum cụ thể
-  async function loadForum(forumPath, page = 1) {
-    state.currentForumPath = forumPath;
-    state.currentThread = null;
-    renderPinnedForums();
-
-    const main = document.getElementById('appMain');
-    main.innerHTML = `<div style="padding:20px;text-align:center;">⏳ Đang tải danh sách bài viết...</div>`;
-
-    try {
-      let targetPath = forumPath;
-      if (page > 1) {
-        targetPath = forumPath.replace(/\/$/, '') + `/page-${page}`;
-      }
-
-      const doc = await fetchProxyHtml(targetPath);
-      const items = doc.querySelectorAll('.structItem--thread');
-      const muteList = (state.settings.muteKeywords || '')
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(Boolean);
-
-      const threads = [];
-      items.forEach(item => {
-        const titleLinks = item.querySelectorAll('.structItem-title a');
-        if (!titleLinks.length) return;
-
-        let prefix = '';
-        let mainLink = titleLinks[0];
-        if (titleLinks.length > 1) {
-          prefix = titleLinks[0].textContent.trim();
-          mainLink = titleLinks[1];
-        }
-
-        const title = mainLink.textContent.trim();
-        const path = mainLink.getAttribute('href').replace(/\/unread$/, '/');
-        const author = item.querySelector('.username')?.textContent.trim() || 'Ẩn danh';
-        const time = item.querySelector('time')?.textContent.trim() || '';
-        const replies = item.querySelector('.structItem-cell--meta dd')?.textContent.trim() || '0';
-
-        // Kiểm tra từ khóa bị chặn
-        if (muteList.some(kw => title.toLowerCase().includes(kw))) return;
-
-        threads.push({ title, prefix, path, author, time, replies });
-      });
-
-      state.threads = threads;
-      renderThreadList(forumPath, page);
-    } catch (e) {
-      main.innerHTML = `<div class="post-card">⚠️ Không thể tải chuyên mục: ${e.message}</div>`;
-    }
-  }
-
-  function renderThreadList(forumPath, page = 1, filterQuery = '') {
-    const main = document.getElementById('appMain');
-    const filtered = state.threads.filter(t =>
-      t.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      t.author.toLowerCase().includes(filterQuery.toLowerCase())
-    );
-
-    main.innerHTML = `
-      <div class="thread-toolbar">
-        <input type="text" class="search-input" placeholder="🔍 Lọc nhanh tiêu đề hoặc tác giả trong trang..."
-               value="${filterQuery}" oninput="renderThreadList('${forumPath}', ${page}, this.value)" />
-        <button onclick="loadForum('${forumPath}', ${page})">🔄 Làm mới</button>
-      </div>
-      <div id="threadContainer">
-        ${filtered.map(t => {
-          const cleanId = t.path.replace(/page-\d+.*$/, '');
-          const savedProgress = state.history[cleanId];
-          return `
-            <div class="thread-item" onclick="loadThread('${cleanId}', ${savedProgress?.page || 1})">
-              <div class="thread-title">
-                ${t.prefix ? `<span class="prefix-badge">${t.prefix}</span>` : ''}
-                <span>${t.title}</span>
-                ${savedProgress ? `<span class="resume-badge">Đọc tiếp trang ${savedProgress.page}</span>` : ''}
-              </div>
-              <div class="thread-meta">
-                <span>👤 ${t.author}</span>
-                <span>💬 ${t.replies} phản hồi</span>
-                <span>🕒 ${t.time}</span>
-              </div>
-            </div>
-          `;
-        }).join('') || '<div class="post-card">Không có bài viết nào phù hợp.</div>'}
-      </div>
-      <div class="pagination">
-        ${page > 1 ? `<button onclick="loadForum('${forumPath}', ${page - 1})">← Trang ${page - 1}</button>` : ''}
-        <span>Trang ${page}</span>
-        <button onclick="loadForum('${forumPath}', ${page + 1})">Trang ${page + 1} →</button>
-      </div>
-    `;
-  }
-
-  // Tải nội dung chi tiết Thớt
-  async function loadThread(threadBasePath, page = 1, append = false) {
-    const main = document.getElementById('appMain');
-    if (!append) {
-      main.innerHTML = `<div style="padding:20px;text-align:center;">⏳ Đang tải bài viết trang ${page}...</div>`;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    try {
-      const normalizedBase = threadBasePath.replace(/\/page-\d+.*$/, '').replace(/\/$/, '') + '/';
-      const targetPath = page > 1 ? `${normalizedBase}page-${page}` : normalizedBase;
-      const doc = await fetchProxyHtml(targetPath);
-
-      const title = doc.querySelector('.p-title-value')?.textContent.trim() || 'Chi tiết chủ đề';
-      const pageNavs = Array.from(doc.querySelectorAll('.pageNav-page a')).map(a => parseInt(a.textContent.trim())).filter(Boolean);
-      const maxPage = pageNavs.length ? Math.max(...pageNavs) : page;
-
-      const articles = doc.querySelectorAll('article.message--post');
-      const posts = [];
-      const pageImages = [];
-
-      articles.forEach((art, idx) => {
-        const author = art.querySelector('.message-name .username, .message-userDetails .username')?.textContent.trim() || 'Ẩn danh';
-        const time = art.querySelector('.message-attribution-main time')?.textContent.trim() || '';
-        const postNum = art.querySelector('.message-attribution-opposite li:last-child a')?.textContent.trim() || `#${idx + 1}`;
-        const bodyEl = art.querySelector('.message-body .bbWrapper');
-
-        if (!bodyEl) return;
-
-        // Chuyển toàn bộ ảnh qua proxy /api/img và hỗ trợ Lightbox
-        bodyEl.querySelectorAll('img').forEach(img => {
-          const src = img.getAttribute('data-src') || img.getAttribute('src');
-          if (src && !src.includes('smilie') && !src.startsWith('data:')) {
-            const proxied = proxyImgUrl(src);
-            img.setAttribute('src', proxied);
-            img.setAttribute('loading', 'lazy');
-            img.setAttribute('onclick', `openLightbox('${proxied}')`);
-            pageImages.push(proxied);
-          }
-        });
-
-        posts.push({ author, time, postNum, html: bodyEl.innerHTML });
-      });
-
-      const opAuthor = (page === 1 && posts.length)
-        ? posts[0].author
-        : (state.currentThread?.opAuthor || posts[0]?.author || '');
-
-      // Lưu lịch sử trang đang đọc
-      state.history[normalizedBase] = { title, page, updatedAt: Date.now() };
-      localStorage.setItem('xr_history', JSON.stringify(state.history));
-
-      state.currentThread = {
-        path: normalizedBase,
-        title,
-        page,
-        maxPage,
-        opAuthor,
-        posts: append && state.currentThread ? [...state.currentThread.posts, ...posts] : posts,
-        allImages: append && state.currentThread ? [...state.currentThread.allImages, ...pageImages] : pageImages
-      };
-
-      renderThreadView();
-    } catch (e) {
-      main.innerHTML = `<div class="post-card">⚠️ Lỗi tải thớt: ${e.message}</div>`;
-    }
-  }
-
-  function renderThreadView() {
-    const t = state.currentThread;
-    if (!t) return;
-
-    const isBookmarked = state.bookmarks.some(b => b.path === t.path);
-    const visiblePosts = state.opOnlyMode
-      ? t.posts.filter(p => p.author === t.opAuthor)
-      : t.posts;
-
-    const main = document.getElementById('appMain');
-    main.innerHTML = `
-      <div class="reader-StickyBar">
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <button onclick="loadForum(state.currentForumPath)">← Quay lại Box</button>
-          <button class="${state.opOnlyMode ? 'active' : ''}" onclick="toggleOpOnly()">
-            👑 Chỉ xem Chủ thớt (${t.opAuthor})
-          </button>
-          <button class="${state.galleryMode ? 'active' : ''}" onclick="toggleGalleryMode()">
-            🖼️ Ảnh (${t.allImages.length})
-          </button>
-          <button class="${isBookmarked ? 'active' : ''}" onclick="toggleBookmark('${t.path}')">
-            ${isBookmarked ? '★ Đã lưu' : '☆ Lưu thớt'}
-          </button>
-        </div>
-        <div style="font-size:0.85rem;color:var(--text-muted);">
-          Trang ${t.page} / ${t.maxPage}
-        </div>
-      </div>
-
-      <h2 style="font-size:1.2rem;margin-bottom:12px;">${t.title}</h2>
-
-      ${state.galleryMode ? `
-        <div class="media-grid">
-          ${t.allImages.map(src => `<img src="${src}" onclick="openLightbox('${src}')" loading="lazy" />`).join('')
-            || '<p>Không có ảnh nào trong trang này.</p>'}
-        </div>
-      ` : ''}
-
-      <div id="postsList">
-        ${visiblePosts.map(p => `
-          <div class="post-card">
-            <div class="post-header">
-              <div>
-                <span class="post-author">${p.author}</span>
-                ${p.author === t.opAuthor ? '<span class="op-tag">CHỦ THỚT</span>' : ''}
-              </div>
-              <div>${p.time} • ${p.postNum}</div>
-            </div>
-            <div class="post-body">${p.html}</div>
-          </div>
-        `).join('') || '<div class="post-card">Trang này không có bài viết nào của Chủ thớt. Hãy chuyển sang trang tiếp theo!</div>'}
-      </div>
-
-      <div class="pagination">
-        ${t.page > 1 ? `<button onclick="loadThread('${t.path}', 1)">« Đầu</button>` : ''}
-        ${t.page > 1 ? `<button onclick="loadThread('${t.path}', ${t.page - 1})">← Trang ${t.page - 1}</button>` : ''}
-        <input type="number" min="1" max="${t.maxPage}" value="${t.page}"
-               style="width:65px;text-align:center;" class="search-input"
-               onchange="loadThread('${t.path}', parseInt(this.value)||1)" />
-        ${t.page < t.maxPage ? `<button onclick="loadThread('${t.path}', ${t.page + 1})">Trang ${t.page + 1} →</button>` : ''}
-        ${t.page < t.maxPage ? `<button onclick="loadThread('${t.path}', ${t.maxPage})">Cuối »</button>` : ''}
-      </div>
-    `;
-  }
-
-  function toggleOpOnly() {
-    state.opOnlyMode = !state.opOnlyMode;
-    renderThreadView();
-  }
-
-  function toggleGalleryMode() {
-    state.galleryMode = !state.galleryMode;
-    renderThreadView();
-  }
-
-  function toggleBookmark(path) {
-    const idx = state.bookmarks.findIndex(b => b.path === path);
-    if (idx >= 0) {
-      state.bookmarks.splice(idx, 1);
-    } else if (state.currentThread) {
-      state.bookmarks.unshift({
-        path,
-        title: state.currentThread.title,
-        page: state.currentThread.page
-      });
-    }
-    localStorage.setItem('xr_bookmarks', JSON.stringify(state.bookmarks));
-    renderThreadView();
-  }
-
-  function toggleBookmarksView() {
-    const main = document.getElementById('appMain');
-    main.innerHTML = `
-      <h3 style="margin-bottom:12px;">🔖 Thớt đã đánh dấu & Đọc gần đây</h3>
-      ${state.bookmarks.map(b => `
-        <div class="thread-item" onclick="loadThread('${b.path}', ${b.page || 1})">
-          <div class="thread-title">${b.title}</div>
-          <div class="thread-meta"><span>Đã lưu tại trang ${b.page || 1}</span></div>
-        </div>
-      `).join('') || '<div class="post-card">Chưa có thớt nào được lưu.</div>'}
-    `;
-  }
-
-  // Quản lý Modal Chuyên mục (Forums)
-  function openForumsModal() {
-    renderForumsModalList();
-    document.getElementById('forumsModal').classList.add('open');
-  }
-
-  function renderForumsModalList() {
-    const container = document.getElementById('allForumsList');
-    container.innerHTML = state.forums.map((f, i) => `
-      <div class="forum-card">
-        <span onclick="document.getElementById('forumsModal').classList.remove('open');loadForum('${f.path}')" style="flex:1;">
-          ${f.title}
-        </span>
-        <button onclick="togglePinForum(${i})" class="${f.pinned ? 'active' : ''}" title="Ghim lên thanh ngang">
-          📌
-        </button>
-      </div>
-    `).join('');
-  }
-
-  function togglePinForum(index) {
-    state.forums[index].pinned = !state.forums[index].pinned;
-    localStorage.setItem('xr_forums', JSON.stringify(state.forums));
-    renderPinnedForums();
-    renderForumsModalList();
-  }
-
-  // Cài đặt & Lightbox
-  function openSettingsModal() {
-    document.getElementById('themeSelect').value = state.settings.theme;
-    document.getElementById('fontSizeRange').value = state.settings.fontSize;
-    document.getElementById('domainInput').value = state.settings.domain || '';
-    document.getElementById('muteInput').value = state.settings.muteKeywords || '';
-    document.getElementById('infiniteScrollToggle').checked = !!state.settings.infiniteScroll;
-    document.getElementById('settingsModal').classList.add('open');
-  }
-
-  function updateSetting(key, val) {
-    state.settings[key] = val;
-    applySettings();
-  }
-
-  function saveSettings() {
-    state.settings.domain = document.getElementById('domainInput').value.trim();
-    state.settings.muteKeywords = document.getElementById('muteInput').value.trim();
-    localStorage.setItem('xr_settings', JSON.stringify(state.settings));
-    document.getElementById('settingsModal').classList.remove('open');
-    loadForum(state.currentForumPath);
-  }
-
-  function openLightbox(src) {
-    document.getElementById('lightboxImg').src = src;
-    document.getElementById('lightboxModal').classList.add('open');
-  }
-
-  // Phím tắt chuyển trang nhanh bằng phím mũi tên ← / →
-  window.addEventListener('keydown', e => {
-    if (!state.currentThread || ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-    if (e.key === 'ArrowRight' && state.currentThread.page < state.currentThread.maxPage) {
-      loadThread(state.currentThread.path, state.currentThread.page + 1);
-    } else if (e.key === 'ArrowLeft' && state.currentThread.page > 1) {
-      loadThread(state.currentThread.path, state.currentThread.page - 1);
-    }
+/* ───────── Parser HTML XenForo 2 (DOMParser có sẵn trong trình duyệt) ───────── */
+const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
+const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
+function parsePage(html, base) {
+  const d = dp(html), media = [], seen = new Set();
+  const add = (type, raw) => { const u = abs(raw, base); if (!u || seen.has(u)) return; seen.add(u); media.push({ type, url: u }); };
+  d.querySelectorAll('.message-body').forEach((body) => {
+    body.querySelectorAll('img.bbImage').forEach((img) => {
+      if (/avatar|smilie|emoji/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
+      add('image', img.dataset.url || img.dataset.src || img.getAttribute('src'));
+    });
+    body.querySelectorAll('video, video source').forEach((v) => { if (!v.closest('blockquote')) add('video', v.getAttribute('src') || v.dataset.src); });
+    body.querySelectorAll('iframe').forEach((f) => { if (!f.closest('blockquote')) add('video', f.getAttribute('src') || f.dataset.src); });
+    body.querySelectorAll('a[href]').forEach((a) => { const h = a.getAttribute('href'); if (h && VID.test(h) && !a.closest('blockquote')) add('video', h); });
   });
+  d.querySelectorAll('.message-attachments a.js-lbImage').forEach((a) => add('image', a.getAttribute('href')));
+  let last = 1;
+  d.querySelectorAll('.pageNav a[href], .pageNav-main a[href], .pageNavWrapper a[href]').forEach((a) => { const n = +((a.getAttribute('href') || '').match(/page-(\d+)/) || [])[1]; if (n > last) last = n; });
+  const t = d.querySelector('h1.p-title-value') || d.querySelector('title');
+  return { media, last, title: t ? t.textContent.replace(/\s+/g, ' ').trim() : '' };
+}
+function parseList(html, base) {
+  const d = dp(html), out = [], seen = new Set();
+  d.querySelectorAll('.structItem-title a:not(.labelLink), .contentRow-title a').forEach((a) => {
+    const h = abs(a.getAttribute('href'), base);
+    if (!h || !/\/(threads|posts)\//.test(h)) return;
+    const url = normThread(h), title = a.textContent.replace(/\s+/g, ' ').trim();
+    if (!title || seen.has(url)) return;
+    seen.add(url);
+    const row = a.closest('.contentRow-main, .structItem-cell--main');
+    const sn = row && row.querySelector('.contentRow-snippet'), mi = row && row.querySelector('.contentRow-minor, .structItem-minor');
+    out.push({ url, title, snippet: sn ? sn.textContent.replace(/\s+/g, ' ').trim() : '', meta: mi ? mi.textContent.replace(/\s+/g, ' ').trim() : '' });
+  });
+  return out;
+}
+const blockMsg = (html) => { const e = dp(html).querySelector('.blockMessage, .block-body--error, .overlay-title'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
 
-  // Khởi chạy ứng dụng
-  applySettings();
-  renderPinnedForums();
-  loadForum(state.currentForumPath);
+/* ───────── Scraper: quét mọi trang /page-N của chủ đề ───────── */
+async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
+  const first = await fx(rebase(input.trim()));
+  const origin = originOf(first.url) || cfg.domain;
+  const root = normThread(first.url).replace(/\/+$/, '');
+  const cur = +((first.url.match(/page-(\d+)/) || [])[1] || 1);
+  const p1 = parsePage(first.html, origin);
+  if (onTitle) onTitle(p1.title);
+  const total = p1.last, by = new Map([[cur, p1.media]]), bad = [];
+  let done = 1;
+  // Chỉ đẩy "phần đầu liền mạch" (trang 1..k) để lưới chỉ thêm vào cuối, không bị chèn giữa
+  const emit = () => { const seen = new Set(), list = []; for (let p = 1; p <= total && by.has(p); p++) for (const m of by.get(p)) if (!seen.has(m.url)) { seen.add(m.url); list.push(m); } onProgress(list, done, total); };
+  emit();
+  const q = []; for (let p = 1; p <= total; p++) if (p !== cur) q.push(p);
+  const worker = async () => {
+    while (q.length && !cancelled()) {
+      const p = q.shift();
+      try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin).media); }
+      catch (e) { if (e.code === 'CF') throw e; bad.push(p); by.set(p, []); }
+      done++; emit();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  let recovered = 0;
+  for (const p of bad) { if (cancelled()) break; try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin).media); recovered++; } catch {} }
+  emit();
+  return { failed: bad.length - recovered, recovered };
+}
+
+async function searchForum({ q, by, exact, order }) {
+  const form = await fx(cfg.domain + '/search/');
+  const d = dp(form.html);
+  const token = (d.documentElement.dataset.csrf) || ((d.querySelector('input[name=_xfToken]') || {}).value);
+  if (!token) throw new Error('Không lấy được mã CSRF của diễn đàn');
+  const kw = q.trim(), p = { _xfToken: token, order, search_type: 'post' };
+  if (by === 'author') p['c[users]'] = kw; else p.keywords = exact ? `"${kw}"` : kw;
+  if (by === 'thread') p['c[title_only]'] = '1';
+  if (by !== 'post') p.grouped = '1';
+  const res = await fx(cfg.domain + '/search/search', { method: 'POST', contentType: 'application/x-www-form-urlencoded', body: Object.entries(p).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&') });
+  const list = parseList(res.html, originOf(res.url) || cfg.domain);
+  if (!list.length) throw new Error(blockMsg(res.html) || 'Không có kết quả phù hợp');
+  return list;
+}
+async function fetchLatest() {
+  let lastErr;
+  for (const path of ['/whats-new/posts/', '/whats-new/', '/find-threads/all']) {
+    try { const r = await fx(cfg.domain + path); const l = parseList(r.html, originOf(r.url) || cfg.domain); if (l.length) return l; } catch (e) { lastErr = e; if (e.code === 'CF') throw e; }
+  }
+  throw lastErr || new Error('Không đọc được danh sách bài mới');
+}
+
+/* ───────── Nguồn ảnh: tự động thử nhiều đường ───────── */
+const imgApi = () => cfg.proxy.replace(/proxy$/, 'img');
+const srcFor = (u, m) => m === 'direct' ? u
+  : m === 'wsrv' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u)
+  : m === 'wsrvT' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=420&q=70&output=webp'
+  : imgApi() + '?url=' + encodeURIComponent(u) + '&ref=' + encodeURIComponent(cfg.domain + '/') + (cfg.key ? '&k=' + encodeURIComponent(cfg.key) : '');
+const chainFor = (thumb) => { const m = cfg.img; if (m === 'auto') return thumb && cfg.thumbs ? ['wsrvT', 'direct', 'wsrv', 'own'] : ['direct', 'wsrv', 'own']; if (m === 'wsrv') return thumb ? ['wsrvT', 'wsrv'] : ['wsrv']; return [m]; };
+
+/* ───────── Điều hướng overlay + nút Back của trình duyệt ───────── */
+const stack = [];
+const pushOv = (close) => { stack.push(close); history.pushState({ ov: stack.length }, ''); };
+const uiBack = () => { if (stack.length) history.back(); };
+addEventListener('popstate', () => { const c = stack.pop(); if (c) c(); });
+
+/* ───────── Tab ───────── */
+let latestLoaded = false;
+function showTab(t) {
+  $$('.screen').forEach((s) => s.classList.toggle('on', s.id === 's-' + t));
+  $$('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  scrollTo(0, 0);
+  if (t === 'latest' && !latestLoaded) loadLatest();
+}
+$('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) showTab(b.dataset.t); });
+
+/* ───────── Thành phần dùng chung ───────── */
+function seg(el, cb) {
+  el.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; $$('button', el).forEach((x) => x.classList.toggle('on', x === b)); el.dataset.v = b.dataset.v; if (cb) cb(b.dataset.v); });
+  el.dataset.v = ($('.on', el) || $('button', el)).dataset.v;
+  return el;
+}
+const setSeg = (el, v) => { const b = $(`button[data-v="${v}"]`, el); if (b) b.click(); };
+const rowHTML = (t) => `<div class="card rowc" data-u="${esc(t.url)}" data-t="${esc(t.title)}"><div class="grow"><b class="clip2">${esc(t.title)}</b>${t.snippet ? `<p class="muted sm clip2">${esc(t.snippet)}</p>` : ''}${t.meta ? `<small class="muted clip" style="display:block;margin-top:2px">${esc(t.meta)}</small>` : ''}</div><span class="circle">${ic('image', 18)}</span></div>`;
+const bindRows = (el) => el.addEventListener('click', (e) => { const r = e.target.closest('.rowc'); if (r) openGallery(r.dataset.u, r.dataset.t); });
+const errHTML = (e) => `<p class="err">${esc(e.message)}</p>` + (e.code === 'CF' ? `<p class="kv" style="padding:0 4px">Cloudflare chặn máy chủ proxy. Thử dán cookie <code>cf_clearance</code> ở tab Thêm, hoặc đổi sang proxy khác (xem hướng dẫn).</p>` : '');
+const spinHTML = '<div class="row" style="justify-content:center;padding:24px"><div class="spin d"></div></div>';
+
+/* ───────── Tìm kiếm ───────── */
+const segBy = seg($('#seg-by'), (v) => { $('#q').placeholder = v === 'au' ? 'Nhập tên người đăng' : 'Nhập từ khóa chủ đề'; });
+const segMatch = seg($('#seg-match')), segScope = seg($('#seg-scope'));
+let order = 'relevance';
+$('#acc').onclick = () => { $('#acc').classList.toggle('open'); $('#opts').hidden = !$('#opts').hidden; };
+$('#dd-btn').onclick = () => { $('#dd-menu').hidden = !$('#dd-menu').hidden; };
+$('#dd-menu').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; order = b.dataset.v; $('#dd-lab').textContent = b.textContent; $$('#dd-menu button').forEach((x) => x.classList.toggle('on', x === b)); $('#dd-menu').hidden = true; };
+const hist = () => store.get('hist', []);
+function renderHist() { $('#hist').innerHTML = hist().map((h) => `<button>${esc(h)}</button>`).join(''); }
+$('#hist').onclick = (e) => { const b = e.target.closest('button'); if (b) { $('#q').value = b.textContent; doSearch(); } };
+async function doSearch() {
+  const q = $('#q').value.trim(); if (!q) return;
+  document.activeElement && document.activeElement.blur();
+  store.set('hist', [q, ...hist().filter((x) => x !== q)].slice(0, 8)); renderHist();
+  const btn = $('#go'), res = $('#results');
+  btn.disabled = true; btn.innerHTML = '<div class="spin"></div>'; res.innerHTML = spinHTML;
+  try {
+    const list = await searchForum({ q, by: segBy.dataset.v === 'au' ? 'author' : segScope.dataset.v, exact: segMatch.dataset.v === 'exact', order });
+    res.innerHTML = list.map(rowHTML).join('');
+  } catch (e) { res.innerHTML = errHTML(e); }
+  btn.disabled = false; btn.textContent = 'Tìm kiếm';
+}
+$('#go').onclick = doSearch;
+$('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+bindRows($('#results'));
+
+function goSearch(mode) {
+  setSeg(segBy, mode === 'au' ? 'au' : 'kw'); setSeg(segScope, mode === 'post' ? 'post' : 'thread');
+  if (mode === 'post' && $('#opts').hidden) $('#acc').click();
+  showTab('search'); $('#q').focus();
+}
+
+/* Trạng thái kết nối */
+async function checkConn() {
+  const box = $('#status');
+  const show = (cls, t, d, act = '') => { box.className = 'warn ' + cls; $('#st-t').textContent = t; $('#st-d').textContent = d; $('#st-a').innerHTML = act; };
+  show('', 'Đang kiểm tra kết nối', 'Đang gọi ' + hostOf(cfg.domain) + ' qua proxy…');
+  try { await fx(cfg.domain + '/'); show('ok', 'Đã kết nối ' + hostOf(cfg.domain), 'Mọi thứ sẵn sàng. Ảnh bị chặn sẽ tự đổi sang đường khác.'); return; }
+  catch (e) {
+    if (e.code !== 'CF') for (const fb of cfg.fallbacks) { try { await fx(fb + '/'); set('domain', fb); $('#set-domain').value = fb; show('ok', 'Đã chuyển sang ' + hostOf(fb), 'Domain cũ không truy cập được nên app tự dùng domain dự phòng.'); return; } catch {} }
+    if (e.code === 'CF') show('', hostOf(cfg.domain) + ' đang yêu cầu xác thực', 'Cloudflare chặn máy chủ proxy. Xem tab Thêm → Proxy & Cloudflare.', `<button class="btn sm2" id="st-open">Mở trang gốc</button>`);
+    else show('bad', 'Không kết nối được ' + hostOf(cfg.domain), e.message, `<button class="btn sm2" id="st-retry">Thử lại</button>`);
+  }
+}
+$('#st-a').onclick = (e) => { if (e.target.id === 'st-retry') checkConn(); if (e.target.id === 'st-open') open(cfg.domain, '_blank', 'noopener'); };
+
+/* ───────── Mới nhất ───────── */
+async function loadLatest() {
+  latestLoaded = true; const el = $('#latest'); el.innerHTML = spinHTML;
+  try { el.innerHTML = (await fetchLatest()).map(rowHTML).join(''); } catch (e) { latestLoaded = false; el.innerHTML = errHTML(e); }
+}
+$('#l-refresh').onclick = loadLatest; bindRows($('#latest'));
+
+/* ───────── Danh mục ───────── */
+const recent = () => store.get('recent', []), saved = () => store.get('saved', []);
+function addRecent(url, title) { store.set('recent', [{ url, title: title || url }, ...recent().filter((x) => x.url !== url)].slice(0, 30)); }
+function catPanel(c) {
+  $('#p-link').hidden = c !== 'link';
+  const list = $('#cat-list'); list.innerHTML = '';
+  if (c === 'recent' || c === 'saved') { const a = c === 'recent' ? recent() : saved(); list.innerHTML = a.length ? a.map(rowHTML).join('') : '<p class="muted" style="text-align:center;padding:16px">Chưa có mục nào.</p>'; }
+  if (c === 'link') $('#link').focus();
+}
+$('.cats').addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; const c = b.dataset.c; if (c === 'kw' || c === 'au' || c === 'post') goSearch(c); else catPanel(c); });
+bindRows($('#cat-list'));
+const scanLink = () => { const s = $('#link').value.trim(); if (!s) return; openGallery(/^https?:\/\//i.test(s) ? s : cfg.domain + '/' + s.replace(/^\//, '')); };
+$('#scan').onclick = scanLink; $('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') scanLink(); });
+$('#paste').onclick = async () => { try { $('#link').value = await navigator.clipboard.readText(); } catch { toast('Không đọc được clipboard, hãy dán thủ công'); } };
+
+/* ───────── Thư viện ảnh/video ───────── */
+let gTok = 0, G = null, gTimer = null;
+const gal = $('#gal'), grid = $('#g-grid'), gmsg = $('#g-msg');
+seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
+const isSaved = (u) => saved().some((x) => x.url === u);
+const syncSave = () => $('#g-save').classList.toggle('on', !!G && isSaved(normThread(G.url)));
+
+function openGallery(url, title) {
+  gTok++; const tok = gTok;
+  G = { url, title: title || '', items: [], view: [], rendered: 0, filter: 'all', state: 'load', done: 0, total: 0 };
+  $('#g-title').textContent = title || 'Đang tải…'; grid.innerHTML = ''; gmsg.innerHTML = '';
+  setSeg($('#g-seg'), 'all'); gal.hidden = false; document.body.style.overflow = 'hidden';
+  pushOv(() => { gTok++; gal.hidden = true; document.body.style.overflow = ''; clearTimeout(gTimer); G = null; });
+  addRecent(normThread(url), title); syncSave(); update(true); run(tok);
+}
+async function run(tok) {
+  G.state = 'load'; G.err = ''; update();
+  try {
+    const r = await scrapeThread(G.url, {
+      cancelled: () => tok !== gTok,
+      onTitle: (t) => { if (tok === gTok && t) { G.title = t; $('#g-title').textContent = t; addRecent(normThread(G.url), t); } },
+      onProgress: (list, done, total) => { if (tok !== gTok) return; G.items = list; G.done = done; G.total = total; clearTimeout(gTimer); gTimer = setTimeout(() => update(), 250); },
+    });
+    if (tok !== gTok) return;
+    G.state = 'done'; G.failed = r.failed; update(r.recovered > 0);
+  } catch (e) { if (tok !== gTok) return; G.state = e.code === 'CF' ? 'cf' : 'err'; G.err = e.message; update(); }
+}
+const tileHTML = (it, k) => it.type === 'video'
+  ? `<button class="tile vid" data-k="${k}">${ic('play', 26)}<small>${esc(hostOf(it.url))}</small></button>`
+  : `<button class="tile" data-k="${k}"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="" data-a="0" src="${esc(srcFor(it.url, chainFor(true)[0]))}"></button>`;
+function update(full) {
+  if (!G) return;
+  const f = G.filter; G.view = G.items.filter((i) => f === 'all' || i.type === f);
+  if (full) { grid.innerHTML = ''; G.rendered = 0; }
+  if (G.rendered < G.view.length) { let h = ''; for (let k = G.rendered; k < G.view.length; k++) h += tileHTML(G.view[k], k); grid.insertAdjacentHTML('beforeend', h); G.rendered = G.view.length; }
+  const nImg = G.items.filter((i) => i.type === 'image').length;
+  $('#g-sub').textContent = `${nImg} ảnh · ${G.items.length - nImg} video` + (G.state === 'load' && G.total ? ` · trang ${G.done}/${G.total}` : '');
+  $('#g-bar').hidden = G.state !== 'load'; $('#g-bar').firstElementChild.style.width = (G.total ? Math.round((G.done / G.total) * 100) : 5) + '%';
+  let m = '';
+  if (G.state === 'cf') m = `<div class="warn"><i data-ic="alert-triangle"></i><div class="grow"><b>Cloudflare đang chặn</b><p class="muted sm">Máy chủ proxy bị yêu cầu xác thực. Dán cookie <code>cf_clearance</code> ở tab Thêm rồi thử lại.</p><button class="btn sm2" data-act="retry">Thử lại</button></div></div>`;
+  else if (G.state === 'err') m = `<p class="err">${esc(G.err)}</p><button class="btn sm2" data-act="retry">Thử lại</button>`;
+  else if (G.state === 'done' && !G.view.length) m = '<p class="muted" style="text-align:center;margin-top:40px">Không tìm thấy ảnh/video nào trong chủ đề này.</p>';
+  else if (G.state === 'done' && G.failed) m = `<p class="kv">${G.failed} trang tải lỗi nên có thể thiếu ảnh. <a href="#" data-act="retry" style="color:var(--brand)">Quét lại</a></p>`;
+  gmsg.innerHTML = m; $$('[data-ic]', gmsg).forEach((el) => { el.innerHTML = ic(el.dataset.ic, 22); el.style.display = 'inline-flex'; });
+}
+gmsg.addEventListener('click', (e) => { const a = e.target.closest('[data-act="retry"]'); if (a) { e.preventDefault(); gTok++; const tok = gTok; G.items = []; G.rendered = 0; grid.innerHTML = ''; run(tok); } });
+$('#g-back').onclick = uiBack;
+$('#g-save').onclick = () => {
+  if (!G) return; const u = normThread(G.url), a = saved();
+  if (isSaved(u)) store.set('saved', a.filter((x) => x.url !== u)); else store.set('saved', [{ url: u, title: G.title || u }, ...a]);
+  syncSave(); toast(isSaved(u) ? 'Đã lưu bài' : 'Đã bỏ lưu');
+};
+const copyText = async (t, ok) => { try { await navigator.clipboard.writeText(t); toast(ok); } catch { toast('Không sao chép được'); } };
+$('#g-copy').onclick = () => { if (!G) return; const l = G.items.filter((i) => i.type === 'image').map((i) => i.url); l.length ? copyText(l.join('\n'), `Đã sao chép ${l.length} link ảnh`) : toast('Chưa có ảnh'); };
+grid.addEventListener('error', (e) => {
+  const img = e.target; if (img.tagName !== 'IMG' || !G) return;
+  const t = img.closest('.tile'), it = G.view[+t.dataset.k], ch = chainFor(true), a = +img.dataset.a + 1;
+  if (a < ch.length) { img.dataset.a = a; img.src = srcFor(it.url, ch[a]); } else { t.classList.add('bad'); t.innerHTML = ic('image', 22) + '<span>Lỗi ảnh · chạm để thử lại</span>'; }
+}, true);
+grid.addEventListener('click', (e) => {
+  const t = e.target.closest('.tile'); if (!t || !G) return;
+  const k = +t.dataset.k, it = G.view[k];
+  if (t.classList.contains('bad')) { t.outerHTML = tileHTML(it, k); return; }
+  if (it.type === 'video') return openVideo(it.url);
+  const imgs = G.view.filter((x) => x.type === 'image'); openLB(imgs, imgs.indexOf(it));
+});
+
+/* ───────── Lightbox: vuốt, chụm để zoom, chạm đúp ───────── */
+const lb = $('#lb'), lbImg = $('#lb-img'), stage = $('#lb-stage');
+const L = { list: [], i: 0, s: 1, x: 0, y: 0 };
+const applyT = (anim) => { lbImg.style.transition = anim ? 'transform .2s' : 'none'; lbImg.style.transform = `translate(${L.x}px,${L.y}px) scale(${L.s})`; };
+function showLB(i) {
+  L.i = clamp(i, 0, L.list.length - 1); L.s = 1; L.x = L.y = 0; applyT(false);
+  const it = L.list[L.i], ch = chainFor(false); lbImg.dataset.a = 0; lbImg.src = srcFor(it.url, ch[0]);
+  $('#lb-n').textContent = `${L.i + 1} / ${L.list.length}`;
+  [L.i - 1, L.i + 1].forEach((j) => { if (L.list[j]) new Image().src = srcFor(L.list[j].url, ch[0]); });
+}
+function openLB(list, i) {
+  L.list = list; lb.hidden = false; showLB(i);
+  pushOv(() => { lb.hidden = true; lbImg.removeAttribute('src'); });
+}
+lbImg.addEventListener('error', () => { const ch = chainFor(false), a = +lbImg.dataset.a + 1; if (a < ch.length) { lbImg.dataset.a = a; lbImg.src = srcFor(L.list[L.i].url, ch[a]); } else toast('Không tải được ảnh này'); });
+$('#lb-close').onclick = uiBack; $('#lb-prev').onclick = () => showLB(L.i - 1); $('#lb-next').onclick = () => showLB(L.i + 1);
+$('#lb-copy').onclick = () => copyText(L.list[L.i].url, 'Đã sao chép link ảnh');
+$('#lb-dl').onclick = async () => {
+  const it = L.list[L.i], btn = $('#lb-dl'); btn.innerHTML = '<div class="spin"></div>';
+  try {
+    let blob; for (const m of ['wsrv', 'own']) { try { const r = await fetch(srcFor(it.url, m)); if (r.ok) { blob = await r.blob(); break; } } catch {} }
+    if (!blob) throw new Error('x');
+    const name = (it.url.split(/[?#]/)[0].split('/').pop() || 'anh').replace(/[^\w.\-]/g, '_'), type = blob.type || 'image/jpeg';
+    const file = new File([blob], /\.\w{3,4}$/.test(name) ? name : name + '.jpg', { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); } catch {} toast('Chọn “Lưu hình ảnh” để lưu vào Ảnh'); }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); toast('Đang tải xuống'); }
+  } catch { open(it.url, '_blank', 'noopener'); toast('Nhấn giữ ảnh để lưu'); }
+  btn.innerHTML = ic('download', 20);
+};
+addEventListener('keydown', (e) => { if (lb.hidden) return; if (e.key === 'ArrowRight') showLB(L.i + 1); else if (e.key === 'ArrowLeft') showLB(L.i - 1); else if (e.key === 'Escape') uiBack(); });
+{
+  const pts = new Map(); let d0 = 0, s0 = 1, x0 = 0, y0 = 0, sx = 0, sy = 0, dx = 0, lastTap = 0;
+  const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pts.size === 2) { d0 = dist(); s0 = L.s; } else { sx = e.clientX; sy = e.clientY; x0 = L.x; y0 = L.y; dx = 0; } });
+  stage.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) { L.s = clamp((s0 * dist()) / d0, 1, 5); applyT(false); }
+    else if (L.s > 1) { L.x = x0 + e.clientX - sx; L.y = y0 + e.clientY - sy; applyT(false); }
+    else { dx = e.clientX - sx; lbImg.style.transition = 'none'; lbImg.style.transform = `translateX(${dx}px)`; }
+  });
+  const end = (e) => {
+    pts.delete(e.pointerId); if (pts.size) return;
+    if (L.s <= 1.02) {
+      L.s = 1; L.x = L.y = 0;
+      if (Math.abs(dx) > 60) { showLB(L.i + (dx < 0 ? 1 : -1)); } else applyT(true);
+      if (Math.abs(dx) < 8) { const n = Date.now(); if (n - lastTap < 300) { L.s = 2.5; applyT(true); } lastTap = n; }
+    } else if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) { const n = Date.now(); if (n - lastTap < 300) { L.s = 1; L.x = L.y = 0; applyT(true); } lastTap = n; }
+    dx = 0;
+  };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+}
+
+/* ───────── Trình phát video ───────── */
+function openVideo(u) {
+  const body = $('#vm-body'); $('#vm-open').href = u;
+  body.innerHTML = VID.test(u) ? `<video src="${esc(u)}" controls autoplay playsinline></video>` : `<iframe src="${esc(u)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+  $('#vm').hidden = false; pushOv(() => { $('#vm').hidden = true; body.innerHTML = ''; });
+}
+$('#vm-close').onclick = uiBack;
+
+/* ───────── Cài đặt ───────── */
+function loadSettings() {
+  $('#set-domain').value = cfg.domain; $('#set-remote').value = cfg.remote; $('#set-proxy').value = cfg.proxy; $('#set-key').value = cfg.key;
+  $('#set-cookie').value = cfg.cookie; $('#set-ua').value = cfg.ua; $('#set-img').value = cfg.img; $('#set-thumbs').checked = cfg.thumbs; $('#set-cols').value = String(cfg.cols);
+  $('#dom-note').textContent = cfg.manual ? 'Đang dùng domain bạn nhập tay (không tự cập nhật).' : 'Domain tự cập nhật từ file cấu hình mỗi lần mở app.';
+  document.documentElement.style.setProperty('--cols', cfg.cols);
+}
+$('#dom-save').onclick = () => { const d = normDomain($('#set-domain').value); if (!d) return toast('Domain không hợp lệ'); set('domain', d); set('manual', true); loadSettings(); toast('Đã lưu domain'); checkConn(); };
+$('#set-remote').onchange = (e) => set('remote', e.target.value.trim());
+async function refreshRemote(force) {
+  if (!cfg.remote || (cfg.manual && !force)) return null;
+  const r = await fetch(cfg.remote + (cfg.remote.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error('Không tải được file cấu hình (HTTP ' + r.status + ')');
+  const j = await r.json(), d = normDomain(j.domain);
+  if (!d) throw new Error('File JSON thiếu trường "domain" hợp lệ');
+  set('fallbacks', (Array.isArray(j.fallbacks) ? j.fallbacks : []).map(normDomain).filter(Boolean));
+  if (d !== cfg.domain || cfg.manual) { set('domain', d); set('manual', false); }
+  return d;
+}
+$('#dom-sync').onclick = async () => { set('remote', $('#set-remote').value.trim()); if (!cfg.remote) return toast('Hãy nhập link file cấu hình trước'); try { const d = await refreshRemote(true); loadSettings(); toast('Domain hiện tại: ' + hostOf(d)); checkConn(); } catch (e) { toast(e.message); } };
+[['set-proxy', 'proxy'], ['set-key', 'key'], ['set-cookie', 'cookie'], ['set-ua', 'ua']].forEach(([id, k]) => { $('#' + id).onchange = (e) => set(k, e.target.value.trim()); });
+$('#set-img').onchange = (e) => set('img', e.target.value);
+$('#set-thumbs').onchange = (e) => set('thumbs', e.target.checked);
+$('#set-cols').onchange = (e) => { set('cols', +e.target.value); loadSettings(); };
+$('#test').onclick = async () => {
+  ['set-proxy', 'set-key', 'set-cookie', 'set-ua'].forEach((id) => $('#' + id).dispatchEvent(new Event('change')));
+  const out = $('#test-out'), t0 = performance.now(); out.textContent = 'Đang thử…';
+  try { await fx(cfg.domain + '/'); out.textContent = `✔ Kết nối ${hostOf(cfg.domain)} thành công (${Math.round(performance.now() - t0)} ms).`; } catch (e) { out.textContent = '✖ ' + e.message; }
+  checkConn();
+};
+$('#clr-hist').onclick = () => { ['hist', 'recent'].forEach((k) => store.set(k, [])); renderHist(); toast('Đã xóa lịch sử'); };
+$('#clr-jar').onclick = () => { jar = {}; store.set('jar', jar); toast('Đã xóa cookie phiên'); };
+
+/* ───────── Khởi động ───────── */
+loadSettings(); renderHist();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+(async () => {
+  try { await refreshRemote(false); loadSettings(); } catch {}
+  checkConn();
+  const u = new URLSearchParams(location.search).get('u');
+  if (u) { history.replaceState(null, '', location.pathname); openGallery(u); }
+})();
+})();
 </script>
 </body>
 </html>
