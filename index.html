@@ -743,7 +743,69 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   return { failed: bad.length - recovered, recovered };
 }
 
-/* ───────── TÌM KIẾM ĐA NGUỒN V3 (TAG + MULTI-ENGINE + DEEP SCAN) ───────── */
+/* ───────── TỰ ĐỘNG ĐĂNG NHẬP CỐ ĐỊNH (HARDCODED AUTO-LOGIN) ───────── */
+const AUTO_AUTH = {
+  login: 'webvip487@gmail.com',
+  password: 'Hai051224@'
+};
+let authPromise = null;
+
+async function ensureAuth(force = false) {
+  // Nếu đã có cookie đăng nhập dài hạn xf_user hoặc phiên đã xác thực thì bỏ qua
+  if (!force && (jar.xf_user || cfg.cookie.includes('xf_user=') || jar._authed)) return true;
+  if (authPromise) return authPromise;
+
+  authPromise = (async () => {
+    try {
+      // Bước 1: Mở trang login để lấy mã bảo mật _xfToken và cookie xf_csrf
+      const loginPage = await fx(`${cfg.domain}/login/`);
+      const doc = dp(loginPage.html);
+
+      // Nếu trong HTML đã có tên tài khoản (đã đăng nhập sẵn)
+      if (doc.querySelector('.p-navgroup-link--user')) {
+        jar._authed = '1';
+        store.set('jar', jar);
+        return true;
+      }
+
+      const xfToken = doc.querySelector('input[name="_xfToken"]')?.value
+        || (loginPage.html.match(/data-csrf="([^"]+)"/) || [])[1]
+        || (loginPage.html.match(/csrf:\s*'([^']+)'/) || [])[1] || '';
+
+      if (!xfToken) return false;
+
+      // Bước 2: Gửi POST đăng nhập kèm remember=1 để lấy cookie xf_user vĩnh viễn
+      const params = new URLSearchParams();
+      params.set('login', AUTO_AUTH.login);
+      params.set('password', AUTO_AUTH.password);
+      params.set('remember', '1');
+      params.set('_xfRedirect', `${cfg.domain}/`);
+      params.set('_xfToken', xfToken);
+
+      const res = await fx(`${cfg.domain}/login/login`, {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: params.toString(),
+      });
+
+      if (res.html.includes('p-navgroup-link--user') || jar.xf_user || jar.xf_session) {
+        jar._authed = '1';
+        store.set('jar', jar);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('Auto-login lỗi:', e.message);
+      return false;
+    } finally {
+      authPromise = null;
+    }
+  })();
+
+  return authPromise;
+}
+
+/* ───────── TÌM KIẾM ĐA NGUỒN (CÓ TỰ ĐỘNG ĐĂNG NHẬP + ĐA TẦNG) ───────── */
 async function searchForum({ q, by, exact, order }) {
   const kw = q.trim();
   const queryTerm = exact ? `"${kw}"` : kw;
@@ -769,7 +831,9 @@ async function searchForum({ q, by, exact, order }) {
     } catch {}
   }
 
-  // Hàm gom và chuẩn hóa kết quả
+  // Tự động đăng nhập ngầm trước khi tìm kiếm
+  await ensureAuth(false);
+
   const pushItem = (rawUrl, title, snippet = '', meta = '') => {
     if (!rawUrl || !title) return;
     let u = rawUrl.trim();
@@ -786,7 +850,6 @@ async function searchForum({ q, by, exact, order }) {
     if (!/^https?:\/\//i.test(u)) u = abs(u, cfg.domain) || '';
     if (!/\/(threads|posts)\//i.test(u)) return;
 
-    // Quy đổi link /posts/12345 về chuẩn hoặc giữ nguyên để đọc
     const cleanUrl = normThread(rebase(u));
     const cleanTitle = title.replace(/\s*\|\s*(?:Page\s*\d+\s*\|\s*)?Xamvn.*$/i, '').replace(/\s+/g, ' ').trim();
     if (!cleanTitle || seen.has(cleanUrl)) return;
@@ -799,49 +862,51 @@ async function searchForum({ q, by, exact, order }) {
     });
   };
 
-  // NGUỒN 1: Tìm qua hệ thống Tag của XenForo (/tags/tran-ha-linh/) - Thường mở cho cả khách
+  // NGUỒN 1: Tìm kiếm chính thức trên XenForo (Đã có phiên đăng nhập từ ensureAuth)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const initRes = await fx(`${cfg.domain}/search/`);
+      // Nếu bị báo chưa đăng nhập ở lần thử đầu -> ép đăng nhập lại
+      if (attempt === 0 && !initRes.html.includes('p-navgroup-link--user')) {
+        await ensureAuth(true);
+      }
+      const xfToken = dp(initRes.html).querySelector('input[name="_xfToken"]')?.value
+        || (initRes.html.match(/data-csrf="([^"]+)"/) || [])[1]
+        || (initRes.html.match(/csrf:\s*'([^']+)'/) || [])[1] || '';
+
+      if (xfToken) {
+        const params = new URLSearchParams();
+        params.set('keywords', queryTerm);
+        if (by === 'thread') params.set('c[title_only]', '1');
+        if (by === 'author') { params.set('c[users]', kw); params.delete('keywords'); }
+        params.set('order', order || 'relevance');
+        params.set('_xfToken', xfToken);
+
+        const searchRes = await fx(`${cfg.domain}/search/search`, {
+          method: 'POST',
+          contentType: 'application/x-www-form-urlencoded',
+          body: params.toString(),
+        });
+        const { list } = parseList(searchRes.html, originOf(searchRes.url) || cfg.domain);
+        list.forEach((item) => { if (!seen.has(item.url)) { seen.add(item.url); out.push(item); } });
+        if (out.length) return out;
+      }
+      break;
+    } catch {}
+  }
+
+  // NGUỒN 2: Tìm qua hệ thống Tag của XenForo (/tags/tran-ha-linh/)
   if (tagSlug && by !== 'author') {
     try {
       const tagRes = await fx(`${cfg.domain}/tags/${tagSlug}/`);
       const { list } = parseList(tagRes.html, originOf(tagRes.url) || cfg.domain);
-      list.forEach((item) => {
-        if (!seen.has(item.url)) { seen.add(item.url); out.push(item); }
-      });
+      list.forEach((item) => { if (!seen.has(item.url)) { seen.add(item.url); out.push(item); } });
       if (out.length) return out;
     } catch {}
   }
 
-  // NGUỒN 2: Tìm kiếm gốc của XenForo (POST + GET)
-  try {
-    const initRes = await fx(cfg.domain + '/');
-    const xfToken = dp(initRes.html).querySelector('input[name="_xfToken"]')?.value
-      || (initRes.html.match(/data-csrf="([^"]+)"/) || [])[1]
-      || (initRes.html.match(/csrf:\s*'([^']+)'/) || [])[1] || '';
-
-    if (xfToken) {
-      const params = new URLSearchParams();
-      params.set('keywords', queryTerm);
-      if (by === 'thread') params.set('c[title_only]', '1');
-      if (by === 'author') { params.set('c[users]', kw); params.delete('keywords'); }
-      params.set('order', order || 'relevance');
-      params.set('_xfToken', xfToken);
-
-      const searchRes = await fx(`${cfg.domain}/search/search`, {
-        method: 'POST',
-        contentType: 'application/x-www-form-urlencoded',
-        body: params.toString(),
-      });
-      const { list } = parseList(searchRes.html, originOf(searchRes.url) || cfg.domain);
-      list.forEach((item) => { if (!seen.has(item.url)) { seen.add(item.url); out.push(item); } });
-      if (out.length) return out;
-    }
-  } catch {}
-
-  // NGUỒN 3: Quét đồng thời nhiều Search Engine (Brave + Yahoo + DDG + Bing) với cả từ khóa có dấu & không dấu
-  const queries = [
-    `${queryTerm} xamvn threads`,
-    `"${kNorm}" xamvn threads`
-  ];
+  // NGUỒN 3: Quét đồng thời Brave + Yahoo + DuckDuckGo + Bing
+  const queries = [`${queryTerm} xamvn threads`, `"${kNorm}" xamvn threads`];
   const seUrls = [
     `https://search.brave.com/search?q=${encodeURIComponent(queries[0])}&source=web`,
     `https://uk.search.yahoo.com/search?p=${encodeURIComponent(queries[0])}&n=30`,
@@ -854,62 +919,22 @@ async function searchForum({ q, by, exact, order }) {
   for (const res of seResponses) {
     if (res.status !== 'fulfilled') continue;
     const d = dp(res.value.html);
-
-    // Brave Search selector
-    d.querySelectorAll('div.snippet[data-type="web"], div.snippet').forEach((node) => {
-      const a = node.querySelector('a[href*="threads"], a.heading-serpresult');
-      if (!a) return;
-      const sn = node.querySelector('.snippet-description, .snippet-content');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Brave Search');
-    });
-
-    // Yahoo selector
-    d.querySelectorAll('div.algo, div.Sr, li .compTitle, div.dd.algo').forEach((node) => {
-      const box = node.closest('div.algo, div.Sr, li') || node;
-      const a = box.querySelector('h3 a[href], a.ac-algo[href], a[href*="threads"]');
-      if (!a) return;
-      const sn = box.querySelector('.compText, .fc-falcon, p');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Yahoo Search');
-    });
-
-    // DuckDuckGo selector
-    d.querySelectorAll('.result, .web-result').forEach((node) => {
-      const a = node.querySelector('a.result__a, a.result-link, h2 a[href]');
-      if (!a) return;
-      const sn = node.querySelector('.result__snippet, .result-snippet');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'DuckDuckGo');
-    });
-
-    // Bing selector
-    d.querySelectorAll('li.b_algo').forEach((li) => {
-      const a = li.querySelector('h2 a[href]');
-      if (!a) return;
-      const sn = li.querySelector('.b_caption p, .b_algoSlug');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Bing Search');
-    });
-
-    // Fallback: Quét mọi thẻ <a> có chứa /threads/ trong trang kết quả tìm kiếm
-    d.querySelectorAll('a[href*="/threads/"]').forEach((a) => {
+    d.querySelectorAll('a[href*="/threads/"], h3 a[href], h2 a[href], a.result__a').forEach((a) => {
       const text = a.textContent.replace(/\s+/g, ' ').trim();
-      if (text.length > 5 && !/^https?:\/\//i.test(text)) {
-        pushItem(a.getAttribute('href'), text, '', 'Tìm kiếm Web');
-      }
+      if (text.length > 4) pushItem(a.getAttribute('href'), text, '', 'Tìm toàn diễn đàn');
     });
   }
   if (out.length) return out;
 
-  // NGUỒN 4: Quét sâu 15 trang trực tiếp trên diễn đàn (Chuyện trò linh tinh, Giải trí, Điểm báo, Bài mới)
+  // NGUỒN 4: Quét trực tiếp 15 trang chuyên mục
   try {
     const scanUrls = [
       `${cfg.domain}/whats-new/posts/`,
       `${cfg.domain}/whats-new/`,
-      `${cfg.domain}/find-threads/unanswered`,
       ...[1, 2, 3, 4, 5, 6].map((p) => `${cfg.domain}/r/chuyen-tro-linh-tinh.19/${p > 1 ? 'page-' + p : ''}`),
       ...[1, 2, 3].map((p) => `${cfg.domain}/r/khu-vui-choi-giai-tri.10/${p > 1 ? 'page-' + p : ''}`),
-      ...[1, 2].map((p) => `${cfg.domain}/r/diem-bao.26/${p > 1 ? 'page-' + p : ''}`),
-      `${cfg.domain}/r/tam-su-eva-adam.22/`
+      ...[1, 2].map((p) => `${cfg.domain}/r/diem-bao.26/${p > 1 ? 'page-' + p : ''}`)
     ];
-
     const pages = await Promise.allSettled(scanUrls.map((u) => fx(u)));
     for (const p of pages) {
       if (p.status !== 'fulfilled') continue;
@@ -917,16 +942,13 @@ async function searchForum({ q, by, exact, order }) {
       list.forEach((x) => {
         const hay = rmTone(`${x.title} ${x.author || ''} ${x.meta || ''} ${x.prefix || ''}`);
         const isMatch = exact ? hay.includes(kNorm) : kWords.every((w) => hay.includes(w));
-        if (isMatch && !seen.has(x.url)) {
-          seen.add(x.url);
-          out.push(x);
-        }
+        if (isMatch && !seen.has(x.url)) { seen.add(x.url); out.push(x); }
       });
     }
     if (out.length) return out;
   } catch {}
 
-  throw new Error('Không tìm thấy bài viết nào khớp với "' + kw + '". (Hãy dán cookie xf_user ở tab Thêm để mở khóa tìm kiếm toàn bộ kho lưu trữ của diễn đàn)');
+  throw new Error('Không tìm thấy bài viết nào khớp với "' + kw + '".');
 }
 let latestPath = '/whats-new/posts/';
 async function fetchLatest(customPath) {
