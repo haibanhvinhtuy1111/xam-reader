@@ -20,7 +20,6 @@
 --shadow:0 4px 12px rgba(11,31,20,.05)}
 
 @media (max-width: 768px) {
-  :root { --cols: 2; }
   .col-pills { display: none !important; }
   .screen { padding: calc(var(--sat) + 8px) 14px calc(var(--barb) + 16px) !important; }
   .card { padding: 16px 14px !important; border-radius: 20px !important; margin-bottom: 12px !important; }
@@ -548,7 +547,7 @@ const saveProg = (u, page, total = 1) => {
 };
 
 const parseCk = (s) => Object.fromEntries((s || '').split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }));
-const cookieHeader = () => Object.entries({ ...jar, ...parseCk(cfg.cookie) }).map(([k, v]) => k + '=' + v).join('; ');
+const cookieHeader = () => Object.entries({ ...jar, ...parseCk(cfg.cookie) }).filter(([k]) => !k.startsWith('_')).map(([k, v]) => k + '=' + v).join('; ');
 const cfErr = () => Object.assign(new Error('Cloudflare đang chặn máy chủ proxy'), { code: 'CF' });
 const isChallenge = (h, st) => /<title>\s*(Just a moment|Attention Required)/i.test(h) || ((st === 403 || st === 503) && /cf-chl|challenge-platform|cloudflare/i.test(h));
 
@@ -567,7 +566,7 @@ async function fx(url, { method = 'GET', body, contentType } = {}) {
   Object.assign(jar, j.cookies || {}); store.set('jar', jar);
   if (isChallenge(j.html || '', j.status)) throw cfErr();
   if (j.status >= 400) throw new Error('Máy chủ trả về HTTP ' + j.status);
-  return { html: j.html, url: j.url };
+  return { html: j.html, url: j.url || url };
 }
 
 const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
@@ -585,15 +584,15 @@ function parsePage(html, base, pageNum = 1) {
     const au = node.dataset?.author || (node.querySelector('.username') ? node.querySelector('.username').textContent.trim() : '');
     const body = node.classList.contains('message-body') ? node : (node.querySelector('.message-body') || node);
     body.querySelectorAll('img.bbImage, img').forEach((img) => {
-      if (/avatar|smilie|emoji/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
-      add('image', img.dataset.url || img.dataset.src || img.getAttribute('src'), au);
+      if (/avatar|smilie|emoji|reaction/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
+      add('image', img.dataset.url || img.dataset.src || img.dataset.original || img.getAttribute('src'), au);
     });
     body.querySelectorAll('video, iframe').forEach((v) => { 
       if (v.closest('blockquote')) return; 
-      let raw = v.getAttribute('src') || v.dataset.src;
+      let raw = v.getAttribute('src') || v.dataset.src || v.dataset.url;
       if (!raw && v.tagName === 'VIDEO') {
-         const srcEl = v.querySelector('source');
-         if (srcEl) raw = srcEl.getAttribute('src');
+        const srcEl = v.querySelector('source');
+        if (srcEl) raw = srcEl.getAttribute('src') || srcEl.dataset.src;
       }
       add('video', raw, au); 
     });
@@ -671,12 +670,12 @@ function parseThreadPosts(html, base) {
 
     const extractAndRemove = (el, type) => {
       if (el.closest('blockquote')) return; 
-      if (type === 'image' && (/smilie|emoji|avatar/i.test(el.className) || el.dataset.smilie)) return; 
+      if (type === 'image' && (/smilie|emoji|avatar|reaction/i.test(el.className) || el.dataset.smilie)) return; 
       
-      let raw = el.getAttribute('src') || el.dataset.src || el.dataset.url;
+      let raw = el.dataset.url || el.dataset.src || el.dataset.original || el.getAttribute('src');
       if (!raw && el.tagName === 'VIDEO') {
-         const srcEl = el.querySelector('source');
-         if (srcEl) raw = srcEl.getAttribute('src');
+        const srcEl = el.querySelector('source');
+        if (srcEl) raw = srcEl.getAttribute('src') || srcEl.dataset.src;
       }
       const u = abs(raw, base);
       if (u && !mediaList.some(m => m.url === u)) {
@@ -696,6 +695,21 @@ function parseThreadPosts(html, base) {
       if (u && !mediaList.some(m => m.url === u)) mediaList.push({ type: 'image', url: u });
     });
     clone.querySelectorAll('.message-attachments').forEach(box => box.remove());
+
+    // Chuẩn hóa các thẻ link & ảnh bên trong blockquote/bài viết
+    clone.querySelectorAll('a[href]').forEach((a) => {
+      const full = abs(a.getAttribute('href'), base);
+      if (full) {
+        a.setAttribute('href', rebase(full));
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+    clone.querySelectorAll('img').forEach((img) => {
+      const raw = img.dataset.url || img.dataset.src || img.getAttribute('src');
+      const full = abs(raw, base);
+      if (full) img.setAttribute('src', full);
+    });
 
     posts.push({
       author: au,
@@ -756,7 +770,6 @@ async function ensureAuth(force = false) {
 
   authPromise = (async () => {
     try {
-      // Bước 1: Gọi trang đăng nhập để lấy _xfToken mới nhất
       const loginPage = await fx(`${cfg.domain}/login/`);
       const doc = dp(loginPage.html);
 
@@ -772,7 +785,6 @@ async function ensureAuth(force = false) {
 
       if (!xfToken) return false;
 
-      // Bước 2: Gửi yêu cầu POST đăng nhập ngầm qua proxy
       const params = new URLSearchParams();
       params.set('login', AUTO_AUTH.login);
       params.set('password', AUTO_AUTH.password);
@@ -786,7 +798,6 @@ async function ensureAuth(force = false) {
         body: params.toString(),
       });
 
-      // Kiểm tra nếu trong jar hoặc kết quả trả về đã có dấu hiệu đăng nhập thành công
       if (jar.xf_user || jar.xf_session || res.html.includes('p-navgroup-link--user')) {
         jar._authed = '1';
         store.set('jar', jar);
@@ -796,43 +807,6 @@ async function ensureAuth(force = false) {
       return false;
     } catch (e) {
       console.warn('Auto-login thất bại:', e.message);
-      return false;
-    } finally {
-      authPromise = null;
-    }
-  })();
-
-  return authPromise;
-}
-
-      const xfToken = doc.querySelector('input[name="_xfToken"]')?.value
-        || (loginPage.html.match(/data-csrf="([^"]+)"/) || [])[1]
-        || (loginPage.html.match(/csrf:\s*'([^']+)'/) || [])[1] || '';
-
-      if (!xfToken) return false;
-
-      // Bước 2: Gửi POST đăng nhập kèm remember=1 để lấy cookie xf_user vĩnh viễn
-      const params = new URLSearchParams();
-      params.set('login', AUTO_AUTH.login);
-      params.set('password', AUTO_AUTH.password);
-      params.set('remember', '1');
-      params.set('_xfRedirect', `${cfg.domain}/`);
-      params.set('_xfToken', xfToken);
-
-      const res = await fx(`${cfg.domain}/login/login`, {
-        method: 'POST',
-        contentType: 'application/x-www-form-urlencoded',
-        body: params.toString(),
-      });
-
-      if (res.html.includes('p-navgroup-link--user') || jar.xf_user || jar.xf_session) {
-        jar._authed = '1';
-        store.set('jar', jar);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.warn('Auto-login lỗi:', e.message);
       return false;
     } finally {
       authPromise = null;
@@ -868,7 +842,6 @@ async function searchForum({ q, by, exact, order }) {
     } catch {}
   }
 
-  // Tự động đăng nhập ngầm trước khi tìm kiếm
   await ensureAuth(false);
 
   const pushItem = (rawUrl, title, snippet = '', meta = '') => {
@@ -899,11 +872,10 @@ async function searchForum({ q, by, exact, order }) {
     });
   };
 
-  // NGUỒN 1: Tìm kiếm chính thức trên XenForo (Đã có phiên đăng nhập từ ensureAuth)
+  // NGUỒN 1: Tìm kiếm chính thức trên XenForo
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const initRes = await fx(`${cfg.domain}/search/`);
-      // Nếu bị báo chưa đăng nhập ở lần thử đầu -> ép đăng nhập lại
       if (attempt === 0 && !initRes.html.includes('p-navgroup-link--user')) {
         await ensureAuth(true);
       }
@@ -932,7 +904,7 @@ async function searchForum({ q, by, exact, order }) {
     } catch {}
   }
 
-  // NGUỒN 2: Tìm qua hệ thống Tag của XenForo (/tags/tran-ha-linh/)
+  // NGUỒN 2: Tìm qua hệ thống Tag của XenForo
   if (tagSlug && by !== 'author') {
     try {
       const tagRes = await fx(`${cfg.domain}/tags/${tagSlug}/`);
@@ -963,7 +935,7 @@ async function searchForum({ q, by, exact, order }) {
   }
   if (out.length) return out;
 
-  // NGUỒN 4: Quét trực tiếp 15 trang chuyên mục
+  // NGUỒN 4: Quét trực tiếp các trang chuyên mục
   try {
     const scanUrls = [
       `${cfg.domain}/whats-new/posts/`,
@@ -987,6 +959,7 @@ async function searchForum({ q, by, exact, order }) {
 
   throw new Error('Không tìm thấy bài viết nào khớp với "' + kw + '".');
 }
+
 let latestPath = '/whats-new/posts/';
 async function fetchLatest(customPath) {
   let lastErr;
@@ -1000,7 +973,11 @@ async function fetchLatest(customPath) {
 const stack = [];
 const pushOv = (close) => { stack.push(close); history.pushState({ ov: stack.length }, ''); };
 const uiBack = () => { if (stack.length) history.back(); };
-addEventListener('popstate', () => { const c = stack.pop(); if (c) c(); });
+addEventListener('popstate', () => {
+  const c = stack.pop();
+  if (c) c();
+  if (!stack.length) document.body.style.overflow = '';
+});
 
 let latestLoaded = false, forumsLoaded = false;
 function showTab(t) {
@@ -1342,7 +1319,7 @@ function openReader(url, title = '', page = 1) {
   $('#r-sub').textContent = `Trang ${page}`;
   setSeg($('#r-seg'), 'all');
   rdr.hidden = false; document.body.style.overflow = 'hidden';
-  pushOv(() => { rTok++; rdr.hidden = true; document.body.style.overflow = ''; R = null; });
+  pushOv(() => { rTok++; rdr.hidden = true; R = null; });
   addRecent(root, title); syncReaderSave();
   loadReaderPage(tok, page);
 }
@@ -1411,7 +1388,7 @@ function renderReaderPosts() {
             <div class="tile-thumb">
               ${isVid 
                 ? `${ic('play', 28)}<small>${esc(hostOf(m.url))}</small>` 
-                : `<img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="${esc(srcFor(m.url, chainFor(true)[0]))}" alt="">`
+                : `<img loading="lazy" decoding="async" referrerpolicy="no-referrer" data-a="0" src="${esc(srcFor(m.url, chainFor(true)[0]))}" alt="">`
               }
             </div>
           </div>
@@ -1434,6 +1411,18 @@ function renderReaderPosts() {
     `;
   }).join('');
 }
+
+rList.addEventListener('error', (e) => {
+  const img = e.target;
+  if (img.tagName !== 'IMG' || !R) return;
+  const tile = img.closest('.tile[data-raw]');
+  if (!tile) return;
+  const ch = chainFor(true), a = (+img.dataset.a || 0) + 1;
+  if (a < ch.length) {
+    img.dataset.a = a;
+    img.src = srcFor(tile.dataset.raw, ch[a]);
+  }
+}, true);
 
 rList.addEventListener('click', (e) => {
   const card = e.target.closest('.tile[data-raw]');
@@ -1467,9 +1456,11 @@ seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
 const syncSave = () => $('#g-save').classList.toggle('on', !!G && isSaved(normThread(G.url)));
 
 function syncColPills() {
+  const effectiveCols = innerWidth <= 768 ? Math.min(cfg.cols, 3) : cfg.cols;
   $$('#g-cols-bar button').forEach((b) => b.classList.toggle('on', +b.dataset.c === +cfg.cols));
-  document.documentElement.style.setProperty('--cols', cfg.cols);
+  document.documentElement.style.setProperty('--cols', effectiveCols);
 }
+addEventListener('resize', syncColPills);
 $('#g-cols-bar').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-c]');
   if (!b) return;
@@ -1484,7 +1475,7 @@ function openGallery(url, title) {
   $('#g-title').textContent = title || 'Đang tải…'; grid.innerHTML = ''; gmsg.innerHTML = '';
   setSeg($('#g-seg'), 'all'); syncColPills();
   gal.hidden = false; document.body.style.overflow = 'hidden';
-  pushOv(() => { gTok++; gal.hidden = true; document.body.style.overflow = ''; clearTimeout(gTimer); G = null; });
+  pushOv(() => { gTok++; gal.hidden = true; clearTimeout(gTimer); G = null; });
   addRecent(normThread(url), title); syncSave(); update(true); run(tok);
 }
 async function run(tok) {
@@ -1549,7 +1540,7 @@ function update(full) {
 }
 gmsg.addEventListener('click', (e) => { const a = e.target.closest('[data-act="retry"]'); if (a) { e.preventDefault(); gTok++; const tok = gTok; G.items = []; G.rendered = 0; grid.innerHTML = ''; run(tok); } });
 $('#g-back').onclick = uiBack;
-$('#g-read').onclick = () => { if (G) openReader(G.url, G.title, 1); };
+$('#g-read').onclick = () => { if (G) { const prog = getProg(G.url); openReader(G.url, G.title, prog ? prog.page : 1); } };
 $('#g-save').onclick = () => {
   if (!G) return; const u = normThread(G.url), a = saved();
   if (isSaved(u)) store.set('saved', a.filter((x) => x.url !== u)); else store.set('saved', [{ url: u, title: G.title || u }, ...a]);
@@ -1560,7 +1551,9 @@ $('#g-copy').onclick = () => { if (!G) return; const l = G.items.filter((i) => i
 
 grid.addEventListener('error', (e) => {
   const img = e.target; if (img.tagName !== 'IMG' || !G) return;
-  const t = img.closest('.tile'), it = G.view[+t.dataset.k], ch = chainFor(true), a = +img.dataset.a + 1;
+  const t = img.closest('.tile'); if (!t) return;
+  const it = G.view[+t.dataset.k]; if (!it) return;
+  const ch = chainFor(true), a = +img.dataset.a + 1;
   if (a < ch.length) { img.dataset.a = a; img.src = srcFor(it.url, ch[a]); }
   else {
     t.classList.add('bad');
@@ -1579,6 +1572,7 @@ grid.addEventListener('click', (e) => {
   }
   const t = e.target.closest('.tile'); if (!t || !G) return;
   const k = +t.dataset.k, it = G.view[k];
+  if (!it) return;
   if (t.classList.contains('bad')) { t.outerHTML = tileHTML(it, k); return; }
   if (it.type === 'video') return openVideo(it.url);
   const imgs = G.view.filter((x) => x.type === 'image'); openLB(imgs, imgs.indexOf(it));
@@ -1588,20 +1582,28 @@ const lb = $('#lb'), lbImg = $('#lb-img'), stage = $('#lb-stage');
 const L = { list: [], i: 0, s: 1, x: 0, y: 0 };
 const applyT = (anim) => { lbImg.style.transition = anim ? 'transform .2s' : 'none'; lbImg.style.transform = `translate(${L.x}px,${L.y}px) scale(${L.s})`; };
 function showLB(i) {
+  if (!L.list.length) return;
   L.i = clamp(i, 0, L.list.length - 1); L.s = 1; L.x = L.y = 0; applyT(false);
   const it = L.list[L.i], ch = chainFor(false); lbImg.dataset.a = 0; lbImg.src = srcFor(it.url, ch[0]);
   $('#lb-n').textContent = `${L.i + 1} / ${L.list.length}`;
   [L.i - 1, L.i + 1].forEach((j) => { if (L.list[j]) new Image().src = srcFor(L.list[j].url, ch[0]); });
 }
 function openLB(list, i) {
+  if (!list || !list.length) return;
   L.list = list; lb.hidden = false; showLB(i);
   pushOv(() => { lb.hidden = true; lbImg.removeAttribute('src'); });
 }
-lbImg.addEventListener('error', () => { const ch = chainFor(false), a = +lbImg.dataset.a + 1; if (a < ch.length) { lbImg.dataset.a = a; lbImg.src = srcFor(L.list[L.i].url, ch[a]); } else toast('Không tải được ảnh này'); });
+lbImg.addEventListener('error', () => {
+  if (lb.hidden || !L.list[L.i]) return;
+  const ch = chainFor(false), a = +lbImg.dataset.a + 1;
+  if (a < ch.length) { lbImg.dataset.a = a; lbImg.src = srcFor(L.list[L.i].url, ch[a]); }
+  else toast('Không tải được ảnh này');
+});
 $('#lb-close').onclick = uiBack; $('#lb-prev').onclick = () => showLB(L.i - 1); $('#lb-next').onclick = () => showLB(L.i + 1);
-$('#lb-copy').onclick = () => copyText(L.list[L.i].url, 'Đã sao chép link ảnh');
+$('#lb-copy').onclick = () => { if (L.list[L.i]) copyText(L.list[L.i].url, 'Đã sao chép link ảnh'); };
 $('#lb-dl').onclick = async () => {
-  const it = L.list[L.i], btn = $('#lb-dl'); btn.innerHTML = '<div class="spin"></div>';
+  const it = L.list[L.i]; if (!it) return;
+  const btn = $('#lb-dl'); btn.innerHTML = '<div class="spin"></div>';
   try {
     let blob; for (const m of ['wsrv', 'own']) { try { const r = await fetch(srcFor(it.url, m)); if (r.ok) { blob = await r.blob(); break; } } catch {} }
     if (!blob) throw new Error('x');
@@ -1629,7 +1631,9 @@ addEventListener('keydown', (e) => { if (lb.hidden) return; if (e.key === 'Arrow
       L.s = 1; L.x = L.y = 0;
       if (Math.abs(dx) > 60) { showLB(L.i + (dx < 0 ? 1 : -1)); } else applyT(true);
       if (Math.abs(dx) < 8) { const n = Date.now(); if (n - lastTap < 300) { L.s = 2.5; applyT(true); } lastTap = n; }
-    } else if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) { const n = Date.now(); if (n - lastTap < 300) { L.s = 1; L.x = L.y = 0; applyT(true); } lastTap = n; }
+    } else if (Math.abs(e.clientX - sx) < 8 && Math.abs(e.clientY - sy) < 8) {
+      const n = Date.now(); if (n - lastTap < 300) { L.s = 1; L.x = L.y = 0; applyT(true); } lastTap = n;
+    }
     dx = 0;
   };
   stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
