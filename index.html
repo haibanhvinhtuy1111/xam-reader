@@ -48,7 +48,9 @@
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
+  width: 100%; max-width: 100%; overflow-x: hidden; position: relative;
+}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer;padding:0}
 input,textarea,select{font-size:16px}
@@ -787,11 +789,11 @@ async function searchForum({ q, by, exact, order }) {
     list.push({
       url: normThread(rawUrl),
       title: title,
-      prefix: 'Kết quả',
+      prefix: 'Tìm kiếm',
       isSticky: false,
-      author: 'Tìm kiếm',
+      author: 'DuckDuckGo',
       snippet: snippet,
-      meta: 'Nguồn: Công cụ tìm kiếm ngoài'
+      meta: 'Nguồn: Công cụ tìm kiếm ẩn danh'
     });
   });
 
@@ -1494,7 +1496,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 (async () => {
   try { await refreshRemote(false); loadSettings(); } catch {}
   checkConn();
-  const u = newSearchParams(location.search).get('u');
+  const u = new URLSearchParams(location.search).get('u');
   if (u) { history.replaceState(null, '', location.pathname); openGallery(u); }
 })();
 })();
