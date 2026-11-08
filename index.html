@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
+<!-- Khóa zoom để iPhone không bị nhảy layout khi gõ phím -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F8F9F5">
@@ -16,10 +17,11 @@
 <style>
 :root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+/* Tăng khoảng không dưới đáy để không bị thanh Tab Bar đè lên nội dung */
 --barb:calc(var(--sab) + 72px); 
 --shadow:0 4px 12px rgba(11,31,20,.05)}
 
-/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) & SỬA LỖI TRÀN NGANG --- */
+/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) --- */
 @media (max-width: 768px) {
   :root { --cols: 2; }
   .col-pills { display: none !important; }
@@ -37,19 +39,28 @@
   .tile-head { padding: 2px !important; }
   .tile-thumb { border-radius: 6px !important; background: #E5E7EB !important; }
   
-  /* Giảm padding lề cho overlay đọc bài để có thêm diện tích hiển thị */
   .g-head { padding: calc(var(--sat) + 6px) 12px 8px !important; gap: 6px !important; }
   .pad { padding: 0 12px 8px !important; }
   .g-scroll { padding: 8px 12px calc(var(--sab) + 40px) !important; }
 
   .rbtn { width: 40px !important; height: 40px !important; }
-  .seg button { padding: 8px 4px !important; font-size: 13.5px !important; }
+  
+  /* Cứu cánh cho lỗi nút quá dài ép tràn màn hình trên iPhone */
+  .seg button { 
+    padding: 8px 2px !important; 
+    font-size: 12.5px !important; 
+    white-space: normal !important; /* Bắt buộc bẻ dòng nếu nút quá dài */
+    line-height: 1.2;
+  }
   .chips button { padding: 5px 10px !important; font-size: 12.5px !important; }
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
+  /* Khóa cứng kích thước trang để không bao giờ vượt qua 100% */
+  width: 100%; max-width: 100%; overflow-x: hidden; position: relative;
+}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer;padding:0}
 input,textarea,select{font-size:16px}
@@ -107,7 +118,6 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .cats .card.active-cat{outline:2px solid var(--brand)}
 .cats .ibox{width:42px;height:42px}
 
-/* Forum Explorer */
 .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .f-box{background:var(--input);border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
 .f-box.on{background:var(--soft);border-color:var(--brand)}
@@ -120,19 +130,20 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .pnav button:disabled{opacity:.4}
 .pnav input{width:64px;height:40px;margin:0;text-align:center;border-radius:12px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:14px;padding:0 6px}
 
-/* --- CHỐNG TRÀN DÀNH CHO POST READER --- */
+/* --- CHỐNG TRÀN CHỮ BỊ CẮT LẸM DÀNH CHO POST READER --- */
 .post-card {
   background:#fff;
   border-radius:20px;
   padding:16px;
   box-shadow:var(--shadow);
   margin-bottom:12px;
+  min-width: 0;          /* Khóa cứng lỗi phình bề ngang của Safari */
   max-width: 100%;       /* Chặn thẻ phình to hơn màn hình */
-  overflow-x: hidden;    /* Cắt đứt các phần tử cố tình tràn ngang */
+  overflow-x: hidden;    
 }
 .post-card.is-op{border-left:4px solid var(--brand)}
 .post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px; min-width:0;} /* Chống tràn tên dài */
 
 .post-body {
   font-size:15px;
@@ -141,7 +152,8 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
   overflow-wrap: anywhere;  /* Bắt buộc bẻ gãy mọi từ quá dài để chống tràn */
   word-break: break-word; 
 }
-.post-body * { max-width: 100%; } /* Ép mọi bảng, ảnh, code block nằm gọn trong khung */
+.post-body * { max-width: 100%; } /* Ép mọi bảng, code block nằm gọn trong khung */
+.post-body img, .post-body video, .post-body iframe { height: auto; border-radius: 8px; }
 .post-body blockquote{margin:8px 0;padding:10px 14px;background:var(--input);border-left:3px solid var(--brand);border-radius:12px;font-size:13.5px;color:var(--muted)}
 .post-body a{color:var(--brand);text-decoration:underline}
 .post-body:empty{display:none}
@@ -163,26 +175,32 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
 
-/* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH & LƯỚI THẺ ───────── */
-.ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;width:100vw;overflow:hidden;}
+/* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH ───────── */
+.ov{
+  position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;
+  width:100%; max-width:100vw; overflow:hidden;
+}
+/* QUAN TRỌNG NHẤT: Khóa cứng thuộc tính Flexbox để không bao giờ bị lệnh Margin Auto sang trái */
+.ov > * { min-width: 0; }
+
 .ov.dark{background:#000;z-index:40;color:#fff}
-.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 10px) 16px 10px;max-width:1440px;width:100%;margin:0 auto}
+.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 10px) 16px 10px;max-width:1440px;width:100%;margin:0 auto; min-width:0;}
 .rbtn{width:42px;height:42px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
 .rbtn.dim{background:rgba(0,0,0,.55);color:#fff;box-shadow:none}
 .rbtn.on{background:var(--brand);color:#fff}
-.pad{padding:0 16px 8px;max-width:1440px;width:100%;margin:0 auto}
+.pad{padding:0 16px 8px;max-width:1440px;width:100%;margin:0 auto; min-width:0;}
 .bar{height:3px;background:var(--chip);border-radius:3px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .25s}
 
-/* Ép khóa chặn trượt ngang hoàn toàn trên vùng đọc */
 .g-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden; /* Cấm Safari kéo ngang */
+  overflow-x: hidden; /* Cấm kéo ngang */
   -webkit-overflow-scrolling: touch;
   padding: 8px 16px calc(var(--sab) + 40px);
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
+  min-width: 0; /* Khóa lỗi Safari trượt trái */
 }
 
 .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
