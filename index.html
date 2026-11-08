@@ -743,7 +743,7 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   return { failed: bad.length - recovered, recovered };
 }
 
-/* ───────── TỰ ĐỘNG ĐĂNG NHẬP CỐ ĐỊNH (HARDCODED AUTO-LOGIN) ───────── */
+/* ───────── TỰ ĐỘNG ĐĂNG NHẬP CỐ ĐỊNH (FIXED AUTO-LOGIN) ───────── */
 const AUTO_AUTH = {
   login: 'webvip487@gmail.com',
   password: 'Hai051224@'
@@ -751,22 +751,59 @@ const AUTO_AUTH = {
 let authPromise = null;
 
 async function ensureAuth(force = false) {
-  // Nếu đã có cookie đăng nhập dài hạn xf_user hoặc phiên đã xác thực thì bỏ qua
   if (!force && (jar.xf_user || cfg.cookie.includes('xf_user=') || jar._authed)) return true;
   if (authPromise) return authPromise;
 
   authPromise = (async () => {
     try {
-      // Bước 1: Mở trang login để lấy mã bảo mật _xfToken và cookie xf_csrf
+      // Bước 1: Gọi trang đăng nhập để lấy _xfToken mới nhất
       const loginPage = await fx(`${cfg.domain}/login/`);
       const doc = dp(loginPage.html);
 
-      // Nếu trong HTML đã có tên tài khoản (đã đăng nhập sẵn)
-      if (doc.querySelector('.p-navgroup-link--user')) {
+      if (doc.querySelector('.p-navgroup-link--user') || jar.xf_user) {
         jar._authed = '1';
         store.set('jar', jar);
         return true;
       }
+
+      const xfToken = doc.querySelector('input[name="_xfToken"]')?.value
+        || (loginPage.html.match(/data-csrf="([^"]+)"/) || [])[1]
+        || (loginPage.html.match(/csrf:\s*'([^']+)'/) || [])[1] || '';
+
+      if (!xfToken) return false;
+
+      // Bước 2: Gửi yêu cầu POST đăng nhập ngầm qua proxy
+      const params = new URLSearchParams();
+      params.set('login', AUTO_AUTH.login);
+      params.set('password', AUTO_AUTH.password);
+      params.set('remember', '1');
+      params.set('_xfRedirect', `${cfg.domain}/`);
+      params.set('_xfToken', xfToken);
+
+      const res = await fx(`${cfg.domain}/login/login`, {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: params.toString(),
+      });
+
+      // Kiểm tra nếu trong jar hoặc kết quả trả về đã có dấu hiệu đăng nhập thành công
+      if (jar.xf_user || jar.xf_session || res.html.includes('p-navgroup-link--user')) {
+        jar._authed = '1';
+        store.set('jar', jar);
+        toast('Đã tự động đăng nhập tài khoản thành công!');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('Auto-login thất bại:', e.message);
+      return false;
+    } finally {
+      authPromise = null;
+    }
+  })();
+
+  return authPromise;
+}
 
       const xfToken = doc.querySelector('input[name="_xfToken"]')?.value
         || (loginPage.html.match(/data-csrf="([^"]+)"/) || [])[1]
