@@ -14,15 +14,16 @@
 <link rel="icon" href="/icon-192.png">
 <title>Xam Reader</title>
 <style>
-:root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:3;
+:root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--barb:max(12px,calc(var(--sab) - 10px));--shadow:0 6px 14px rgba(11,31,20,.07)}
+@media (max-width:768px){:root{--cols:2}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer;padding:0}
 input,textarea,select{font-size:16px}
-#app{max-width:560px;margin:0 auto}
+#app{max-width:680px;margin:0 auto}
 .screen{display:none;min-height:100dvh;padding:calc(var(--sat) + 8px) 20px calc(64px + var(--barb) + 32px)}
 .screen.on{display:block}
 h1{font-size:32px;font-weight:800;letter-spacing:-.5px;margin:0 0 12px}
@@ -86,15 +87,20 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .pnav button{height:40px;padding:0 16px;border-radius:20px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:4px}
 .pnav button:disabled{opacity:.4}
 .pnav input{width:68px;height:40px;margin:0;text-align:center;border-radius:14px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:14px;padding:0 6px}
+
 /* Post Reader */
-.post-card{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.post-card{background:#fff;border-radius:20px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
 .post-card.is-op{border-left:4px solid var(--brand)}
 .post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
-.post-body{font-size:15.5px;line-height:1.6;word-break:break-word;color:var(--ink)}
+.post-body{font-size:15px;line-height:1.55;word-break:break-word;color:var(--ink)}
 .post-body blockquote{margin:8px 0;padding:10px 14px;background:var(--input);border-left:3px solid var(--brand);border-radius:12px;font-size:13.5px;color:var(--muted)}
-.post-body img{max-width:100%;border-radius:14px;margin:8px 0;display:block;cursor:zoom-in}
 .post-body a{color:var(--brand);text-decoration:underline}
+.post-body:empty{display:none}
+
+/* Post Media Grid (gọn gàng trong từng bình luận) */
+.post-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+
 .sw{position:relative;width:51px;height:31px;flex:none}
 .sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:1}
 .sw span{position:absolute;inset:0;background:#D1D5DB;border-radius:99px;transition:.2s}
@@ -108,21 +114,64 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 #tabs{position:fixed;z-index:20;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:528px;bottom:var(--barb);height:64px;border-radius:32px;background:#fff;box-shadow:0 10px 30px rgba(11,31,20,.16);display:flex;align-items:center;padding:0 8px}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
-/* overlay: thư viện, reader, lightbox, video */
+
+/* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH & LƯỚI THẺ ───────── */
 .ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}
 .ov.dark{background:#000;z-index:40;color:#fff}
-.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 6px) 12px 10px;max-width:560px;width:100%;margin:0 auto}
-.rbtn{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
+.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 8px) 16px 10px;max-width:1440px;width:100%;margin:0 auto}
+.rbtn{width:42px;height:42px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
 .rbtn.dim{background:rgba(0,0,0,.55);color:#fff;box-shadow:none}
 .rbtn.on{background:var(--brand);color:#fff}
-.pad{padding:0 16px 8px;max-width:560px;width:100%;margin:0 auto}
+.pad{padding:0 16px 8px;max-width:1440px;width:100%;margin:0 auto}
 .bar{height:3px;background:var(--chip);border-radius:3px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .25s}
-.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px);max-width:560px;width:100%;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:3px}
-.tile{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#E5E7EB;display:flex;flex-direction:column;align-items:center;justify-content:center;content-visibility:auto;contain-intrinsic-size:120px}
-.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.tile.vid{background:var(--ink);color:#fff;gap:4px}.tile.vid small{font-size:10px;opacity:.7;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tile.bad{color:var(--muted);font-size:11px;text-align:center;padding:6px}
+.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px);max-width:1440px;width:100%;margin:0 auto}
+
+/* Lưới thẻ dùng chung cho Gallery và Post Media */
+.grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
+.tile{
+  background:#EEF1F6;
+  border:1px solid #E2E6EE;
+  border-radius:14px;
+  padding:8px 10px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  cursor:pointer;
+  transition:background .15s,transform .12s,box-shadow .15s;
+  content-visibility:auto;
+  contain-intrinsic-size:210px;
+  text-align:left;
+}
+.tile:hover{background:#E4E9F2;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.tile-head{display:flex;align-items:center;gap:7px;width:100%;padding:2px 2px 0}
+.tile-ic{
+  width:18px;height:18px;border-radius:4px;
+  background:#EA4335;color:#fff;
+  display:inline-flex;align-items:center;justify-content:center;flex:none;
+}
+.tile.vid .tile-ic{background:#2563EB}
+.tile-name{flex:1;font-size:12.5px;font-weight:600;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-act{
+  width:24px;height:24px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#4B5563;font-size:15px;font-weight:700;flex:none;
+}
+.tile-act:hover{background:rgba(0,0,0,.08)}
+.tile-thumb{
+  position:relative;width:100%;aspect-ratio:4/3;
+  border-radius:8px;overflow:hidden;background:#111827;
+  display:flex;align-items:center;justify-content:center;
+}
+.tile-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.tile:hover .tile-thumb img{transform:scale(1.03)}
+.tile.vid .tile-thumb{color:#fff;flex-direction:column;gap:4px}
+.tile.vid .tile-thumb small{font-size:10.5px;opacity:.75;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.bad .tile-thumb{background:#F3F4F6;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-direction:column;gap:4px}
+
+.col-pills{display:flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px}
+.col-pills button{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--muted)}
+.col-pills button.on{background:var(--brand);color:#fff}
+
 .stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:none;overflow:hidden}
 .stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none;will-change:transform}
 .lb-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--sat) + 6px) 14px 0;z-index:2;pointer-events:none}
@@ -183,13 +232,12 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <div class="cats">
     <button class="card active-cat" data-c="forums"><div class="ibox"><i data-ic="compass" data-s="24"></i></div><div><b>Chuyên mục (Forums)</b><p class="muted sm">Xem theo từng box</p></div></button>
     <button class="card" data-c="link"><div class="ibox"><i data-ic="image" data-s="24"></i></div><div><b>Lọc ảnh/video</b><p class="muted sm">Từ link hoặc bài viết</p></div></button>
-    <button class="card" data-c="recent"><div class="ibox"><i data-ic="history" data-s="24"></i></div><div><b>Đã xem gần đây</b><p class="muted sm">Lưu cả trang đang đọc</p></div></button>
+    <button class="card" data-c="recent"><div class="ibox"><i data-ic="history" data-s="24"></i></div><div><b>Đã xem gần đây</b><p class="muted sm">30 chủ đề gần nhất</p></div></button>
     <button class="card" data-c="saved"><div class="ibox"><i data-ic="bookmark" data-s="24"></i></div><div><b>Đã lưu</b><p class="muted sm">Chủ đề bạn đánh dấu</p></div></button>
     <button class="card" data-c="kw"><div class="ibox"><i data-ic="file-text" data-s="24"></i></div><div><b>Tìm bài viết</b><p class="muted sm">Theo từ khóa</p></div></button>
     <button class="card" data-c="au"><div class="ibox"><i data-ic="user" data-s="24"></i></div><div><b>Tìm người đăng</b><p class="muted sm">Theo tên tác giả</p></div></button>
   </div>
 
-  <!-- Bảng duyệt theo từng Forums -->
   <div id="p-forums">
     <div class="card">
       <div class="row" style="justify-content:space-between">
@@ -197,7 +245,6 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
         <button class="rbtn" id="f-sync" title="Quét danh sách Box từ trang chủ" style="width:38px;height:38px;background:var(--soft);color:var(--brand);box-shadow:none"><i data-ic="refresh" data-s="18"></i></button>
       </div>
       <div class="f-grid" id="f-boxes"></div>
-
       <button class="acc" id="f-custom-acc">Mở Box bằng link hoặc mã tùy chọn <i data-ic="chevron-down"></i></button>
       <div id="f-custom-box" hidden>
         <div class="row gap" style="margin-top:8px">
@@ -206,7 +253,6 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
         </div>
       </div>
     </div>
-
     <div class="card" id="f-ctrl">
       <div class="row" style="justify-content:space-between">
         <b class="t17 clip" id="f-cur-name">Chuyện trò linh tinh</b>
@@ -218,16 +264,13 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
         <button data-v="reply_count">Sôi nổi</button>
         <button data-v="view_count">Xem nhiều</button>
       </div>
-      <!-- Thanh lọc Prefix và Lọc nhanh -->
       <div class="chips" id="f-prefixes"></div>
       <div class="row gap" style="margin-top:12px">
         <input type="text" id="f-filter" placeholder="Lọc nhanh tiêu đề / tác giả..." style="margin:0;height:40px;font-size:14px;flex:1">
         <button class="btn soft" id="f-hide-pin" style="margin:0;width:auto;padding:0 14px;height:40px;font-size:13px">Ẩn bài ghim</button>
       </div>
     </div>
-
     <div id="f-threads"></div>
-
     <div class="pnav" id="f-pnav" hidden>
       <button id="f-prev"><i data-ic="arrow-left" data-s="16"></i> Trước</button>
       <div class="row gap" style="gap:4px">
@@ -239,14 +282,13 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
     </div>
   </div>
 
-  <!-- Bảng dán link quét ảnh -->
   <div class="card" id="p-link" hidden>
     <b>Dán link bài viết</b>
     <input type="url" id="link" placeholder="https://xamvn.work/threads/..." autocapitalize="none" autocorrect="off">
     <div class="row gap">
       <button class="btn soft" id="paste" style="flex:1">Dán clipboard</button>
-      <button class="btn soft" id="read-link" style="flex:1">Đọc bài</button>
-      <button class="btn" id="scan" style="flex:1;margin-top:8px;height:44px">Quét ảnh</button>
+      <button class="btn soft" id="read-link" style="flex:1">Đọc chữ</button>
+      <button class="btn" id="scan" style="flex:1;margin-top:8px;height:44px">Mở lưới ảnh</button>
     </div>
   </div>
   <div id="cat-list"></div>
@@ -254,7 +296,6 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
 
 <section class="screen" id="s-more">
   <h1>Thêm</h1>
-
   <div class="card">
     <div class="row gap"><i data-ic="globe"></i><b>Tên miền diễn đàn</b></div>
     <input type="url" id="set-domain" autocapitalize="none" autocorrect="off">
@@ -265,38 +306,38 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
     <p class="kv">Nội dung file: <code>{"domain":"https://xamvn.xyz","fallbacks":["https://xamvn.com"]}</code></p>
     <button class="btn soft" id="dom-sync">Cập nhật domain ngay</button>
   </div>
-
   <div class="card">
     <div class="row gap"><i data-ic="shield"></i><b>Proxy &amp; Cloudflare</b></div>
-    <p class="muted sm" style="margin-top:8px">Mọi trang diễn đàn được tải qua proxy trên Vercel của bạn (vượt CORS, vượt chặn nhà mạng).</p>
     <label class="f">Địa chỉ proxy<input type="text" id="set-proxy" autocapitalize="none" autocorrect="off"></label>
-    <label class="f">Khóa truy cập (nếu bạn đã đặt <code>ACCESS_KEY</code>)<input type="password" id="set-key" autocomplete="off"></label>
+    <label class="f">Khóa truy cập<input type="password" id="set-key" autocomplete="off"></label>
     <label class="f">Cookie (tùy chọn: <code>cf_clearance</code>, <code>xf_user</code>...)<textarea id="set-cookie" placeholder="cf_clearance=...; xf_user=..." autocapitalize="none" autocorrect="off"></textarea></label>
-    <label class="f">User-Agent (cần khớp trình duyệt đã lấy cookie)<input type="text" id="set-ua" placeholder="Để trống = mặc định" autocapitalize="none" autocorrect="off"></label>
+    <label class="f">User-Agent<input type="text" id="set-ua" placeholder="Để trống = mặc định" autocapitalize="none" autocorrect="off"></label>
     <button class="btn" id="test">Kiểm tra kết nối</button>
     <p class="kv" id="test-out"></p>
   </div>
-
   <div class="card">
-    <div class="row gap"><i data-ic="image"></i><b>Hiển thị ảnh</b></div>
+    <div class="row gap"><i data-ic="image"></i><b>Hiển thị lưới thẻ ảnh</b></div>
     <label class="f">Nguồn ảnh
       <select id="set-img">
         <option value="auto">Tự động (thử trực tiếp → wsrv.nl → proxy riêng)</option>
         <option value="direct">Trực tiếp (không gửi Referer)</option>
         <option value="wsrv">Qua wsrv.nl</option>
-        <option value="own">Qua proxy Vercel (gắn Referer diễn đàn)</option>
+        <option value="own">Qua proxy Vercel</option>
       </select></label>
-    <div class="row" style="margin-top:16px"><div class="grow"><b>Thu nhỏ ảnh xem trước</b><p class="muted sm">Qua wsrv.nl, nhẹ hơn khi dùng 4G.</p></div><label class="sw"><input type="checkbox" id="set-thumbs"><span></span></label></div>
-    <label class="f">Số cột trong lưới
-      <select id="set-cols"><option value="2">2 cột</option><option value="3">3 cột</option><option value="4">4 cột</option></select></label>
+    <div class="row" style="margin-top:16px"><div class="grow"><b>Thu nhỏ ảnh xem trước</b></div><label class="sw"><input type="checkbox" id="set-thumbs"><span></span></label></div>
+    <label class="f">Số cột mặc định trong lưới
+      <select id="set-cols">
+        <option value="2">2 cột (Điện thoại)</option>
+        <option value="3">3 cột</option>
+        <option value="4">4 cột</option>
+        <option value="5">5 cột (Máy tính)</option>
+        <option value="6">6 cột</option>
+      </select></label>
   </div>
-
   <div class="card">
     <div class="row gap"><i data-ic="trash"></i><b>Dữ liệu</b></div>
-    <button class="btn soft" id="clr-hist">Xóa lịch sử xem, tiến độ đọc &amp; tìm kiếm</button>
+    <button class="btn soft" id="clr-hist">Xóa lịch sử &amp; tiến độ đọc</button>
     <button class="btn soft" id="clr-jar">Xóa cookie phiên của proxy</button>
-    <p class="kv"><b>Cài lên màn hình chính (iPhone):</b> mở trang này bằng Safari → nút Chia sẻ → <i>Thêm vào Màn hình chính</i>. App sẽ chạy toàn màn hình như app thật.<br>
-    <b>Mở nhanh từ bài viết:</b> tạo bookmark Safari có địa chỉ <code>javascript:location='https://TEN-MIEN-CUA-BAN/?u='+encodeURIComponent(location.href)</code> rồi bấm khi đang xem bài trên diễn đàn.</p>
   </div>
 </section>
 </main>
@@ -308,16 +349,37 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <button data-t="more"><i data-ic="dots"></i><span>Thêm</span></button>
 </nav>
 
-<!-- OVERLAY 1: TRÌNH ĐỌC BÀI VIẾT (THREAD READER) -->
+<!-- OVERLAY 1: THƯ VIỆN LƯỚI THẺ TOÀN MÀN HÌNH -->
+<div class="ov" id="gal" hidden>
+  <header class="g-head">
+    <button class="rbtn" id="g-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
+    <div class="grow"><b class="clip t17" id="g-title" style="display:block">Đang tải…</b><small class="muted" id="g-sub"></small></div>
+    <div class="col-pills" id="g-cols-bar" title="Đổi số cột hiển thị">
+      <button data-c="2">2</button><button data-c="3">3</button><button data-c="4">4</button><button data-c="5">5</button><button data-c="6">6</button>
+    </div>
+    <button class="rbtn" id="g-read" title="Chuyển sang đọc bình luận"><i data-ic="file-text" data-s="20"></i></button>
+    <button class="rbtn" id="g-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
+    <button class="rbtn" id="g-copy" aria-label="Sao chép toàn bộ link ảnh"><i data-ic="copy" data-s="20"></i></button>
+  </header>
+  <div class="pad">
+    <div class="seg" id="g-seg" style="margin-top:4px;max-width:460px">
+      <button data-v="all" class="on">Tất cả</button><button data-v="image">Ảnh</button><button data-v="video">Video</button>
+    </div>
+    <div class="bar" id="g-bar"><i></i></div>
+  </div>
+  <div class="g-scroll"><div id="g-msg"></div><div class="grid" id="g-grid"></div></div>
+</div>
+
+<!-- OVERLAY 2: TRÌNH ĐỌC BÀI VIẾT (Gom ảnh & video vào Lưới Thẻ bên dưới chữ) -->
 <div class="ov" id="rdr" hidden>
   <header class="g-head">
     <button class="rbtn" id="r-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
     <div class="grow"><b class="clip t17" id="r-title" style="display:block">Đang tải bài viết…</b><small class="muted" id="r-sub"></small></div>
-    <button class="rbtn" id="r-gal" title="Quét toàn bộ Ảnh/Video trong chủ đề này"><i data-ic="image" data-s="20"></i></button>
+    <button class="rbtn on" id="r-gal" title="Xem dạng Lưới thẻ toàn bộ Ảnh/Video"><i data-ic="grid" data-s="20"></i></button>
     <button class="rbtn" id="r-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
   </header>
   <div class="pad">
-    <div class="seg" id="r-seg" style="margin-top:2px">
+    <div class="seg" id="r-seg" style="margin-top:2px;max-width:480px">
       <button data-v="all" class="on">Tất cả</button>
       <button data-v="op">Chỉ chủ thớt (OP)</button>
       <button data-v="media">Có ảnh/video</button>
@@ -334,20 +396,6 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
       <button id="r-next">Trang sau <i data-ic="arrow-right" data-s="16"></i></button>
     </div>
   </div>
-</div>
-
-<!-- OVERLAY 2: THƯ VIỆN ẢNH/VIDEO (GALLERY) -->
-<div class="ov" id="gal" hidden>
-  <header class="g-head">
-    <button class="rbtn" id="g-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
-    <div class="grow"><b class="clip t17" id="g-title" style="display:block">Đang tải…</b><small class="muted" id="g-sub"></small></div>
-    <button class="rbtn" id="g-read" title="Đọc nội dung chữ"><i data-ic="file-text" data-s="20"></i></button>
-    <button class="rbtn" id="g-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
-    <button class="rbtn" id="g-copy" aria-label="Sao chép link ảnh"><i data-ic="copy" data-s="20"></i></button>
-  </header>
-  <div class="pad"><div class="seg" id="g-seg" style="margin-top:4px"><button data-v="all" class="on">Tất cả</button><button data-v="image">Ảnh</button><button data-v="video">Video</button></div>
-    <div class="bar" id="g-bar"><i></i></div></div>
-  <div class="g-scroll"><div id="g-msg"></div><div class="grid" id="g-grid"></div></div>
 </div>
 
 <!-- OVERLAY 3: LIGHTBOX -->
@@ -376,7 +424,6 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
-/* ───────── Icon (kiểu Lucide) ───────── */
 const IC = {
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   'zoom-in': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/>',
@@ -406,22 +453,21 @@ const IC = {
 const ic = (n, s = 22, sw = 2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${IC[n] || ''}</svg>`;
 $$('[data-ic]').forEach((el) => { el.innerHTML = ic(el.dataset.ic, +el.dataset.s || 22); el.style.display = 'inline-flex'; });
 
-/* ───────── Lưu trữ & cấu hình ───────── */
 const store = {
   get(k, d) { try { const v = localStorage.getItem('xr.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('xr.' + k, JSON.stringify(v)); } catch {} },
 };
 const DEFAULT_DOMAIN = 'https://xamvn.work';
+const defaultCols = innerWidth > 900 ? 5 : (innerWidth > 600 ? 3 : 2);
 const cfg = {
   domain: store.get('domain', DEFAULT_DOMAIN), manual: store.get('manual', false), remote: store.get('remote', ''), fallbacks: store.get('fallbacks', []),
   proxy: store.get('proxy', '/api/proxy'), key: store.get('key', ''), cookie: store.get('cookie', ''), ua: store.get('ua', ''),
-  img: store.get('img', 'auto'), thumbs: store.get('thumbs', false), cols: store.get('cols', 3),
+  img: store.get('img', 'auto'), thumbs: store.get('thumbs', true), cols: store.get('cols', defaultCols),
 };
 const set = (k, v) => { cfg[k] = v; store.set(k, v); };
 let jar = store.get('jar', {});
 const toast = (() => { let t; return (m) => { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2400); }; })();
 
-/* ───────── Tiện ích URL & Tiến độ đọc ───────── */
 const hostOf = (u) => String(u).replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
 const originOf = (u) => (String(u).match(/^https?:\/\/[^/]+/i) || [''])[0];
 const normThread = (u) => { const m = String(u).match(/^(https?:\/\/[^/]+\/threads\/[^/?#]+)/i); return m ? m[1] : String(u).split('#')[0]; };
@@ -430,6 +476,19 @@ const abs = (raw, base) => { if (!raw) return null; raw = raw.trim(); if (!raw |
 const normDomain = (s) => { s = (s || '').trim(); if (!s) return null; if (!/^https?:\/\//i.test(s)) s = 'https://' + s; const m = s.match(/^https?:\/\/[^/\s?#]+/i); return m ? m[0].toLowerCase() : null; };
 const rebase = (u) => { const o = originOf(u); return o && o.toLowerCase() !== cfg.domain && /\/(threads|posts|goto|r|forums)\//.test(u) ? cfg.domain + u.slice(o.length) : u; };
 
+const fileLabel = (url, k, page) => {
+  try {
+    const clean = decodeURIComponent(url.split(/[?#]/)[0]);
+    let last = clean.split('/').filter(Boolean).pop() || '';
+    if (!last || /^(index|image|attachment|data)$/i.test(last) || last.length < 3) {
+      return `IMG_${String(k + 1).padStart(4, '0')}${page ? ` (Tr.${page})` : ''}`;
+    }
+    return last.length > 22 ? last.slice(0, 19) + '...' : last;
+  } catch {
+    return `IMG_${String(k + 1).padStart(4, '0')}`;
+  }
+};
+
 const getProg = (u) => (store.get('progress', {})[threadKey(u)] || null);
 const saveProg = (u, page, total = 1) => {
   const p = store.get('progress', {});
@@ -437,7 +496,6 @@ const saveProg = (u, page, total = 1) => {
   store.set('progress', p);
 };
 
-/* ───────── Mạng: gọi diễn đàn qua proxy ───────── */
 const parseCk = (s) => Object.fromEntries((s || '').split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }));
 const cookieHeader = () => Object.entries({ ...jar, ...parseCk(cfg.cookie) }).map(([k, v]) => k + '=' + v).join('; ');
 const cfErr = () => Object.assign(new Error('Cloudflare đang chặn máy chủ proxy'), { code: 'CF' });
@@ -461,21 +519,34 @@ async function fx(url, { method = 'GET', body, contentType } = {}) {
   return { html: j.html, url: j.url };
 }
 
-/* ───────── Parser HTML XenForo 2 ───────── */
 const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
 const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
 
-function parsePage(html, base) {
+function parsePage(html, base, pageNum = 1) {
   const d = dp(html), media = [], seen = new Set();
-  const add = (type, raw) => { const u = abs(raw, base); if (!u || seen.has(u)) return; seen.add(u); media.push({ type, url: u }); };
-  d.querySelectorAll('.message-body').forEach((body) => {
+  const add = (type, raw, author = '') => {
+    const u = abs(raw, base);
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    media.push({ type, url: u, page: pageNum, author });
+  };
+  d.querySelectorAll('article.message--post, .message-body').forEach((node) => {
+    const au = node.dataset?.author || (node.querySelector('.username') ? node.querySelector('.username').textContent.trim() : '');
+    const body = node.classList.contains('message-body') ? node : (node.querySelector('.message-body') || node);
     body.querySelectorAll('img.bbImage, img').forEach((img) => {
       if (/avatar|smilie|emoji/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
-      add('image', img.dataset.url || img.dataset.src || img.getAttribute('src'));
+      add('image', img.dataset.url || img.dataset.src || img.getAttribute('src'), au);
     });
-    body.querySelectorAll('video, video source').forEach((v) => { if (!v.closest('blockquote')) add('video', v.getAttribute('src') || v.dataset.src); });
-    body.querySelectorAll('iframe').forEach((f) => { if (!f.closest('blockquote')) add('video', f.getAttribute('src') || f.dataset.src); });
-    body.querySelectorAll('a[href]').forEach((a) => { const h = a.getAttribute('href'); if (h && VID.test(h) && !a.closest('blockquote')) add('video', h); });
+    body.querySelectorAll('video, iframe').forEach((v) => { 
+      if (v.closest('blockquote')) return; 
+      let raw = v.getAttribute('src') || v.dataset.src;
+      if (!raw && v.tagName === 'VIDEO') {
+         const srcEl = v.querySelector('source');
+         if (srcEl) raw = srcEl.getAttribute('src');
+      }
+      add('video', raw, au); 
+    });
+    body.querySelectorAll('a[href]').forEach((a) => { const h = a.getAttribute('href'); if (h && VID.test(h) && !a.closest('blockquote')) add('video', h, au); });
   });
   d.querySelectorAll('.message-attachments a.js-lbImage').forEach((a) => add('image', a.getAttribute('href')));
   let last = 1;
@@ -520,6 +591,7 @@ function parseList(html, base) {
   return { list: out, last };
 }
 
+/* ───────── HÀM BÓC TÁCH KHẮC PHỤC LỖI VIDEO VÀ IFRAME ───────── */
 function parseThreadPosts(html, base) {
   const d = dp(html), posts = [];
   let last = 1;
@@ -543,28 +615,50 @@ function parseThreadPosts(html, base) {
     if (!bodyEl) return;
 
     const clone = bodyEl.cloneNode(true);
-    let hasMedia = false;
-    clone.querySelectorAll('script, style').forEach((s) => s.remove());
-    clone.querySelectorAll('img').forEach((img) => {
-      if (/smilie|emoji/i.test(img.className) || img.dataset.smilie) return;
-      const raw = img.dataset.url || img.dataset.src || img.getAttribute('src');
-      const u = abs(raw, base);
-      if (u) {
-        hasMedia = true;
-        img.src = srcFor(u, chainFor(false)[0]);
-        img.dataset.raw = u;
-        img.removeAttribute('srcset');
-        img.setAttribute('loading', 'lazy');
+    const mediaList = [];
+    
+    // 1. Xóa các đoạn mã script, style, nút thu gọn thừa
+    clone.querySelectorAll('script, style, .bbCodeBlock-expandLink, .js-expandWatch').forEach((s) => s.remove());
+
+    // 2. Hàm gom Ảnh/Video và xóa chúng khỏi thẻ DOM gốc (để tạo Lưới Thẻ phía dưới)
+    const extractAndRemove = (el, type) => {
+      if (el.closest('blockquote')) return; 
+      if (type === 'image' && (/smilie|emoji|avatar/i.test(el.className) || el.dataset.smilie)) return; 
+      
+      let raw = el.getAttribute('src') || el.dataset.src || el.dataset.url;
+      if (!raw && el.tagName === 'VIDEO') {
+         const srcEl = el.querySelector('source');
+         if (srcEl) raw = srcEl.getAttribute('src');
       }
+      const u = abs(raw, base);
+      if (u && !mediaList.some(m => m.url === u)) {
+        mediaList.push({ type, url: u });
+      }
+      
+      // Xóa tận gốc các khung chứa (wrapper) bao quanh Ảnh/Video/Iframe để mất vệt đen
+      const wrapper = el.closest('.bbMediaWrapper, .bbImageWrapper, .attachment, [data-s9e-mediaembed]');
+      if (wrapper) wrapper.remove();
+      else el.remove();
+    };
+
+    clone.querySelectorAll('img').forEach(img => extractAndRemove(img, 'image'));
+    // ÉP BÓC TÁCH VIDEO VÀ IFRAME (Tiktok, Youtube, file mp4 đính kèm)
+    clone.querySelectorAll('video, iframe').forEach(vid => extractAndRemove(vid, 'video'));
+    
+    // Xử lý nốt các khung attachments dạng link ảnh ẩn
+    clone.querySelectorAll('.message-attachments a.js-lbImage').forEach((a) => {
+      const u = abs(a.getAttribute('href'), base);
+      if (u && !mediaList.some(m => m.url === u)) mediaList.push({ type: 'image', url: u });
     });
-    clone.querySelectorAll('video, iframe').forEach(() => { hasMedia = true; });
-    clone.querySelectorAll('.bbCodeBlock-expandLink, .js-expandWatch').forEach((e) => e.remove());
+    clone.querySelectorAll('.message-attachments').forEach(box => box.remove());
 
     posts.push({
       author: au,
       isOp: opAuthor && au.toLowerCase() === opAuthor.toLowerCase(),
-      time, num, hasMedia,
-      html: clone.innerHTML,
+      time, num,
+      hasMedia: mediaList.length > 0,
+      mediaList,
+      html: clone.innerHTML.replace(/(<br\s*\/?>\s*){2,}/gi, '<br>').trim(),
     });
   });
   return { title, opAuthor, last, posts };
@@ -572,7 +666,6 @@ function parseThreadPosts(html, base) {
 
 const blockMsg = (html) => { const e = dp(html).querySelector('.blockMessage, .block-body--error, .overlay-title'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
 
-/* ───────── Nguồn ảnh: tự động thử nhiều đường ───────── */
 const imgApi = () => cfg.proxy.replace(/proxy$/, 'img');
 const srcFor = (u, m) => m === 'direct' ? u
   : m === 'wsrv' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u)
@@ -580,13 +673,12 @@ const srcFor = (u, m) => m === 'direct' ? u
   : imgApi() + '?url=' + encodeURIComponent(u) + '&ref=' + encodeURIComponent(cfg.domain + '/') + (cfg.key ? '&k=' + encodeURIComponent(cfg.key) : '');
 const chainFor = (thumb) => { const m = cfg.img; if (m === 'auto') return thumb && cfg.thumbs ? ['wsrvT', 'direct', 'wsrv', 'own'] : ['direct', 'wsrv', 'own']; if (m === 'wsrv') return thumb ? ['wsrvT', 'wsrv'] : ['wsrv']; return [m]; };
 
-/* ───────── Scraper: quét mọi trang /page-N của chủ đề ───────── */
 async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   const first = await fx(rebase(input.trim()));
   const origin = originOf(first.url) || cfg.domain;
   const root = normThread(first.url).replace(/\/+$/, '');
   const cur = +((first.url.match(/page-(\d+)/) || [])[1] || 1);
-  const p1 = parsePage(first.html, origin);
+  const p1 = parsePage(first.html, origin, cur);
   if (onTitle) onTitle(p1.title);
   const total = p1.last, by = new Map([[cur, p1.media]]), bad = [];
   let done = 1;
@@ -596,14 +688,14 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   const worker = async () => {
     while (q.length && !cancelled()) {
       const p = q.shift();
-      try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin).media); }
+      try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin, p).media); }
       catch (e) { if (e.code === 'CF') throw e; bad.push(p); by.set(p, []); }
       done++; emit();
     }
   };
   await Promise.all([worker(), worker(), worker()]);
   let recovered = 0;
-  for (const p of bad) { if (cancelled()) break; try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin).media); recovered++; } catch {} }
+  for (const p of bad) { if (cancelled()) break; try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin, p).media); recovered++; } catch {} }
   emit();
   return { failed: bad.length - recovered, recovered };
 }
@@ -633,13 +725,11 @@ async function fetchLatest(customPath) {
   throw lastErr || new Error('Không đọc được danh sách bài mới');
 }
 
-/* ───────── Điều hướng overlay + nút Back của trình duyệt ───────── */
 const stack = [];
 const pushOv = (close) => { stack.push(close); history.pushState({ ov: stack.length }, ''); };
 const uiBack = () => { if (stack.length) history.back(); };
 addEventListener('popstate', () => { const c = stack.pop(); if (c) c(); });
 
-/* ───────── Tab ───────── */
 let latestLoaded = false, forumsLoaded = false;
 function showTab(t) {
   $$('.screen').forEach((s) => s.classList.toggle('on', s.id === 's-' + t));
@@ -650,7 +740,6 @@ function showTab(t) {
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) showTab(b.dataset.t); });
 
-/* ───────── Thành phần dùng chung (Danh sách chủ đề) ───────── */
 function seg(el, cb) {
   el.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; $$('button', el).forEach((x) => x.classList.toggle('on', x === b)); el.dataset.v = b.dataset.v; if (cb) cb(b.dataset.v); });
   el.dataset.v = ($('.on', el) || $('button', el)).dataset.v;
@@ -670,29 +759,28 @@ const rowHTML = (t) => {
       ${t.snippet ? `<p class="muted sm clip2">${esc(t.snippet)}</p>` : ''}
       <small class="muted clip" style="display:block;margin-top:4px">
         ${esc(t.meta || '')}
-        ${prog ? `<span class="badge prog">Đọc tiếp tr.${prog.page}</span>` : ''}
+        ${prog ? `<span class="badge prog">Trang ${prog.page}</span>` : ''}
       </small>
     </div>
-    <button class="circle soft-c act-read" title="Đọc bài viết">${ic('file-text', 18)}</button>
-    <button class="circle act-gal" title="Quét Ảnh & Video">${ic('image', 18)}</button>
+    <button class="circle soft-c act-read" title="Đọc bình luận">${ic('file-text', 18)}</button>
+    <button class="circle act-gal" title="Mở Lưới Thẻ Ảnh & Video">${ic('grid', 18)}</button>
   </div>`;
 };
 
 const bindRows = (el) => el.addEventListener('click', (e) => {
   const r = e.target.closest('.rowc');
   if (!r) return;
-  if (e.target.closest('.act-gal')) {
-    openGallery(r.dataset.u, r.dataset.t);
-  } else {
+  if (e.target.closest('.act-read')) {
     const prog = getProg(r.dataset.u);
     openReader(r.dataset.u, r.dataset.t, prog ? prog.page : 1);
+  } else {
+    openGallery(r.dataset.u, r.dataset.t);
   }
 });
 
 const errHTML = (e) => `<p class="err">${esc(e.message)}</p>` + (e.code === 'CF' ? `<p class="kv" style="padding:0 4px">Cloudflare chặn máy chủ proxy. Thử dán cookie <code>cf_clearance</code> ở tab Thêm, hoặc đổi sang proxy khác.</p>` : '');
 const spinHTML = '<div class="row" style="justify-content:center;padding:24px"><div class="spin d"></div></div>';
 
-/* ───────── Tìm kiếm ───────── */
 const segBy = seg($('#seg-by'), (v) => { $('#q').placeholder = v === 'au' ? 'Nhập tên người đăng' : 'Nhập từ khóa chủ đề'; });
 const segMatch = seg($('#seg-match')), segScope = seg($('#seg-scope'));
 let order = 'relevance';
@@ -724,12 +812,11 @@ function goSearch(mode) {
   showTab('search'); $('#q').focus();
 }
 
-/* Trạng thái kết nối */
 async function checkConn() {
   const box = $('#status');
   const show = (cls, t, d, act = '') => { box.className = 'warn ' + cls; $('#st-t').textContent = t; $('#st-d').textContent = d; $('#st-a').innerHTML = act; };
   show('', 'Đang kiểm tra kết nối', 'Đang gọi ' + hostOf(cfg.domain) + ' qua proxy…');
-  try { await fx(cfg.domain + '/'); show('ok', 'Đã kết nối ' + hostOf(cfg.domain), 'Mọi thứ sẵn sàng. Chạm tiêu đề để đọc bài, chạm nút ảnh để quét ảnh.'); return; }
+  try { await fx(cfg.domain + '/'); show('ok', 'Đã kết nối ' + hostOf(cfg.domain), 'Chạm vào bài để mở ngay Lưới Thẻ Ảnh/Video nhiều cột.'); return; }
   catch (e) {
     if (e.code !== 'CF') for (const fb of cfg.fallbacks) { try { await fx(fb + '/'); set('domain', fb); $('#set-domain').value = fb; show('ok', 'Đã chuyển sang ' + hostOf(fb), 'Domain cũ không truy cập được nên app tự dùng domain dự phòng.'); return; } catch {} }
     if (e.code === 'CF') show('', hostOf(cfg.domain) + ' đang yêu cầu xác thực', 'Cloudflare chặn máy chủ proxy. Xem tab Thêm → Proxy & Cloudflare.', `<button class="btn sm2" id="st-open">Mở trang gốc</button>`);
@@ -738,7 +825,6 @@ async function checkConn() {
 }
 $('#st-a').onclick = (e) => { if (e.target.id === 'st-retry') checkConn(); if (e.target.id === 'st-open') open(cfg.domain, '_blank', 'noopener'); };
 
-/* ───────── Mới nhất ───────── */
 seg($('#seg-latest'), (v) => { latestPath = v; loadLatest(); });
 async function loadLatest() {
   latestLoaded = true; const el = $('#latest'); el.innerHTML = spinHTML;
@@ -746,7 +832,6 @@ async function loadLatest() {
 }
 $('#l-refresh').onclick = loadLatest; bindRows($('#latest'));
 
-/* ───────── Danh mục & DUYỆT THEO TỪNG FORUMS ───────── */
 const DEFAULT_FORUMS = [
   { path: '/r/chuyen-tro-linh-tinh.19/', name: 'Chuyện trò linh tinh', group: 'Đại sảnh' },
   { path: '/r/diem-bao.26/', name: 'Điểm báo', group: 'Đại sảnh' },
@@ -808,7 +893,6 @@ $('#f-boxes').addEventListener('click', (e) => {
   }
 });
 
-// Quét tự động danh sách tất cả Forums thực tế từ trang chủ diễn đàn
 $('#f-sync').onclick = async () => {
   const btn = $('#f-sync'); btn.innerHTML = '<div class="spin d"></div>';
   try {
@@ -886,7 +970,6 @@ async function loadForumThreads() {
     F.total = data.last || 1;
     renderForumPrefixes();
     renderForumThreadList();
-    // Tự động tải trước (Prefetch) trang tiếp theo vào bộ nhớ đệm
     if (F.page < F.total) {
       fetchForumPageData(F.curPath, F.page + 1, F.order).catch(() => {});
     }
@@ -969,10 +1052,11 @@ bindRows($('#cat-list'));
 const resolveLinkInp = () => { const s = $('#link').value.trim(); if (!s) return null; return /^https?:\/\//i.test(s) ? s : cfg.domain + '/' + s.replace(/^\//, ''); };
 $('#scan').onclick = () => { const u = resolveLinkInp(); if (u) openGallery(u); };
 $('#read-link').onclick = () => { const u = resolveLinkInp(); if (u) openReader(u, '', 1); };
-$('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const u = resolveLinkInp(); if (u) openReader(u, '', 1); } });
+$('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const u = resolveLinkInp(); if (u) openGallery(u); } });
 $('#paste').onclick = async () => { try { $('#link').value = await navigator.clipboard.readText(); } catch { toast('Không đọc được clipboard, hãy dán thủ công'); } };
 
-/* ───────── TRÌNH ĐỌC BÀI VIẾT CHI TIẾT (THREAD READER) ───────── */
+
+/* ───────── TRÌNH ĐỌC BÀI VIẾT TỰ ĐỘNG ÉP MEDIA VÀO LƯỚI ───────── */
 let R = null, rTok = 0;
 const rdr = $('#rdr'), rList = $('#r-list');
 const isSaved = (u) => saved().some((x) => x.url === u);
@@ -1042,25 +1126,58 @@ function renderReaderPosts() {
     rList.innerHTML = '<p class="muted" style="text-align:center;padding:32px">Không có bình luận nào khớp bộ lọc trên trang này.</p>';
     return;
   }
-  rList.innerHTML = list.map((p) => `
-    <article class="post-card ${p.isOp ? 'is-op' : ''}">
-      <div class="post-head">
-        <div class="post-au">
-          <span>${esc(p.author)}</span>
-          ${p.isOp ? '<span class="badge">Chủ thớt</span>' : ''}
-        </div>
-        <small class="muted">${esc(p.time)} · ${esc(p.num)}</small>
+  
+  rList.innerHTML = list.map((p) => {
+    // Render phần lưới ảnh/video bên trong bài viết
+    const mediaGridHTML = p.mediaList.length ? `
+      <div class="post-media-grid">
+        ${p.mediaList.map((m, idx) => {
+          const isVid = m.type === 'video';
+          return `
+          <div class="tile ${isVid ? 'vid' : ''}" data-raw="${esc(m.url)}" data-type="${m.type}">
+            <div class="tile-head">
+              <span class="tile-ic">${ic(isVid ? 'play' : 'image', 11)}</span>
+              <span class="tile-name" title="${esc(m.url)}">${esc(fileLabel(m.url, idx))}</span>
+            </div>
+            <div class="tile-thumb">
+              ${isVid 
+                ? `${ic('play', 28)}<small>${esc(hostOf(m.url))}</small>` 
+                : `<img loading="lazy" decoding="async" referrerpolicy="no-referrer" src="${esc(srcFor(m.url, chainFor(true)[0]))}" alt="">`
+              }
+            </div>
+          </div>
+        `}).join('')}
       </div>
-      <div class="post-body">${p.html}</div>
-    </article>
-  `).join('');
+    ` : '';
+    
+    return `
+      <article class="post-card ${p.isOp ? 'is-op' : ''}">
+        <div class="post-head">
+          <div class="post-au">
+            <span>${esc(p.author)}</span>
+            ${p.isOp ? '<span class="badge">Chủ thớt</span>' : ''}
+          </div>
+          <small class="muted">${esc(p.time)} · ${esc(p.num)}</small>
+        </div>
+        ${p.html ? `<div class="post-body">${p.html}</div>` : ''}
+        ${mediaGridHTML}
+      </article>
+    `;
+  }).join('');
 }
 
+// Lắng nghe sự kiện click trên từng ô trong Lưới Thẻ
 rList.addEventListener('click', (e) => {
-  const img = e.target.closest('.post-body img');
-  if (img && img.dataset.raw) {
-    const allImgs = [...rList.querySelectorAll('.post-body img[data-raw]')].map((x) => ({ type: 'image', url: x.dataset.raw }));
-    const idx = allImgs.findIndex((x) => x.url === img.dataset.raw);
+  const card = e.target.closest('.tile[data-raw]');
+  if (card) {
+    const url = card.dataset.raw;
+    const type = card.dataset.type;
+    if (type === 'video') {
+      openVideo(url);
+      return;
+    }
+    const allImgs = [...rList.querySelectorAll('.tile[data-type="image"]')].map((x) => ({ type: 'image', url: x.dataset.raw }));
+    const idx = allImgs.findIndex((x) => x.url === url);
     openLB(allImgs, Math.max(0, idx));
   }
 });
@@ -1076,17 +1193,30 @@ $('#r-prev').onclick = () => { if (R && R.page > 1) loadReaderPage(rTok, R.page 
 $('#r-next').onclick = () => { if (R && R.page < R.total) loadReaderPage(rTok, R.page + 1); };
 $('#r-jump').onchange = (e) => { if (R) loadReaderPage(rTok, clamp(+e.target.value || 1, 1, R.total)); };
 
-/* ───────── Thư viện ảnh/video (Gallery) ───────── */
+/* ───────── THƯ VIỆN LƯỚI THẺ (DRIVE GALLERY TOÀN MÀN HÌNH) ───────── */
 let gTok = 0, G = null, gTimer = null;
 const gal = $('#gal'), grid = $('#g-grid'), gmsg = $('#g-msg');
 seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
 const syncSave = () => $('#g-save').classList.toggle('on', !!G && isSaved(normThread(G.url)));
 
+function syncColPills() {
+  $$('#g-cols-bar button').forEach((b) => b.classList.toggle('on', +b.dataset.c === +cfg.cols));
+  document.documentElement.style.setProperty('--cols', cfg.cols);
+}
+$('#g-cols-bar').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-c]');
+  if (!b) return;
+  set('cols', +b.dataset.c);
+  $('#set-cols').value = String(cfg.cols);
+  syncColPills();
+});
+
 function openGallery(url, title) {
   gTok++; const tok = gTok;
   G = { url, title: title || '', items: [], view: [], rendered: 0, filter: 'all', state: 'load', done: 0, total: 0 };
   $('#g-title').textContent = title || 'Đang tải…'; grid.innerHTML = ''; gmsg.innerHTML = '';
-  setSeg($('#g-seg'), 'all'); gal.hidden = false; document.body.style.overflow = 'hidden';
+  setSeg($('#g-seg'), 'all'); syncColPills();
+  gal.hidden = false; document.body.style.overflow = 'hidden';
   pushOv(() => { gTok++; gal.hidden = true; document.body.style.overflow = ''; clearTimeout(gTimer); G = null; });
   addRecent(normThread(url), title); syncSave(); update(true); run(tok);
 }
@@ -1096,27 +1226,57 @@ async function run(tok) {
     const r = await scrapeThread(G.url, {
       cancelled: () => tok !== gTok,
       onTitle: (t) => { if (tok === gTok && t) { G.title = t; $('#g-title').textContent = t; addRecent(normThread(G.url), t); } },
-      onProgress: (list, done, total) => { if (tok !== gTok) return; G.items = list; G.done = done; G.total = total; clearTimeout(gTimer); gTimer = setTimeout(() => update(), 250); },
+      onProgress: (list, done, total) => { if (tok !== gTok) return; G.items = list; G.done = done; G.total = total; clearTimeout(gTimer); gTimer = setTimeout(() => update(), 220); },
     });
     if (tok !== gTok) return;
     G.state = 'done'; G.failed = r.failed; update(r.recovered > 0);
   } catch (e) { if (tok !== gTok) return; G.state = e.code === 'CF' ? 'cf' : 'err'; G.err = e.message; update(); }
 }
-const tileHTML = (it, k) => it.type === 'video'
-  ? `<button class="tile vid" data-k="${k}">${ic('play', 26)}<small>${esc(hostOf(it.url))}</small></button>`
-  : `<button class="tile" data-k="${k}"><img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="" data-a="0" src="${esc(srcFor(it.url, chainFor(true)[0]))}"></button>`;
+
+const tileHTML = (it, k) => {
+  const label = fileLabel(it.url, k, it.page);
+  if (it.type === 'video') {
+    return `<div class="tile vid" data-k="${k}">
+      <div class="tile-head">
+        <span class="tile-ic">${ic('play', 10)}</span>
+        <span class="tile-name" title="${esc(it.url)}">${esc(label)}</span>
+        <button class="tile-act" data-menu="${k}" title="Sao chép link">⋮</button>
+      </div>
+      <div class="tile-thumb">
+        ${ic('play', 28)}
+        <small>${esc(hostOf(it.url))}${it.page ? ` · Tr.${it.page}` : ''}</small>
+      </div>
+    </div>`;
+  }
+  return `<div class="tile" data-k="${k}">
+    <div class="tile-head">
+      <span class="tile-ic">${ic('image', 11)}</span>
+      <span class="tile-name" title="${esc(it.author ? `${it.author} · Trang ${it.page}` : label)}">${esc(label)}</span>
+      <button class="tile-act" data-menu="${k}" title="Sao chép link ảnh">⋮</button>
+    </div>
+    <div class="tile-thumb">
+      <img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="" data-a="0" src="${esc(srcFor(it.url, chainFor(true)[0]))}">
+    </div>
+  </div>`;
+};
+
 function update(full) {
   if (!G) return;
   const f = G.filter; G.view = G.items.filter((i) => f === 'all' || i.type === f);
   if (full) { grid.innerHTML = ''; G.rendered = 0; }
-  if (G.rendered < G.view.length) { let h = ''; for (let k = G.rendered; k < G.view.length; k++) h += tileHTML(G.view[k], k); grid.insertAdjacentHTML('beforeend', h); G.rendered = G.view.length; }
+  if (G.rendered < G.view.length) {
+    let h = '';
+    for (let k = G.rendered; k < G.view.length; k++) h += tileHTML(G.view[k], k);
+    grid.insertAdjacentHTML('beforeend', h);
+    G.rendered = G.view.length;
+  }
   const nImg = G.items.filter((i) => i.type === 'image').length;
-  $('#g-sub').textContent = `${nImg} ảnh · ${G.items.length - nImg} video` + (G.state === 'load' && G.total ? ` · trang ${G.done}/${G.total}` : '');
+  $('#g-sub').textContent = `${nImg} ảnh · ${G.items.length - nImg} video` + (G.state === 'load' && G.total ? ` · đang quét trang ${G.done}/${G.total}` : (G.total ? ` · ${G.total} trang` : ''));
   $('#g-bar').hidden = G.state !== 'load'; $('#g-bar').firstElementChild.style.width = (G.total ? Math.round((G.done / G.total) * 100) : 5) + '%';
   let m = '';
   if (G.state === 'cf') m = `<div class="warn"><i data-ic="alert-triangle"></i><div class="grow"><b>Cloudflare đang chặn</b><p class="muted sm">Máy chủ proxy bị yêu cầu xác thực. Dán cookie <code>cf_clearance</code> ở tab Thêm rồi thử lại.</p><button class="btn sm2" data-act="retry">Thử lại</button></div></div>`;
   else if (G.state === 'err') m = `<p class="err">${esc(G.err)}</p><button class="btn sm2" data-act="retry">Thử lại</button>`;
-  else if (G.state === 'done' && !G.view.length) m = '<p class="muted" style="text-align:center;margin-top:40px">Không tìm thấy ảnh/video nào trong chủ đề này.</p>';
+  else if (G.state === 'done' && !G.view.length) m = '<p class="muted" style="text-align:center;margin-top:40px">Không tìm thấy ảnh/video nào trong chủ đề này. Bấm nút 📄 góc trên để đọc chữ.</p>';
   else if (G.state === 'done' && G.failed) m = `<p class="kv">${G.failed} trang tải lỗi nên có thể thiếu ảnh. <a href="#" data-act="retry" style="color:var(--brand)">Quét lại</a></p>`;
   gmsg.innerHTML = m; $$('[data-ic]', gmsg).forEach((el) => { el.innerHTML = ic(el.dataset.ic, 22); el.style.display = 'inline-flex'; });
 }
@@ -1130,12 +1290,26 @@ $('#g-save').onclick = () => {
 };
 const copyText = async (t, ok) => { try { await navigator.clipboard.writeText(t); toast(ok); } catch { toast('Không sao chép được'); } };
 $('#g-copy').onclick = () => { if (!G) return; const l = G.items.filter((i) => i.type === 'image').map((i) => i.url); l.length ? copyText(l.join('\n'), `Đã sao chép ${l.length} link ảnh`) : toast('Chưa có ảnh'); };
+
 grid.addEventListener('error', (e) => {
   const img = e.target; if (img.tagName !== 'IMG' || !G) return;
   const t = img.closest('.tile'), it = G.view[+t.dataset.k], ch = chainFor(true), a = +img.dataset.a + 1;
-  if (a < ch.length) { img.dataset.a = a; img.src = srcFor(it.url, ch[a]); } else { t.classList.add('bad'); t.innerHTML = ic('image', 22) + '<span>Lỗi ảnh · chạm để thử lại</span>'; }
+  if (a < ch.length) { img.dataset.a = a; img.src = srcFor(it.url, ch[a]); }
+  else {
+    t.classList.add('bad');
+    const th = t.querySelector('.tile-thumb');
+    if (th) th.innerHTML = ic('image', 22) + '<span>Lỗi ảnh · chạm thử lại</span>';
+  }
 }, true);
+
 grid.addEventListener('click', (e) => {
+  const menuBtn = e.target.closest('[data-menu]');
+  if (menuBtn && G) {
+    e.stopPropagation();
+    const it = G.view[+menuBtn.dataset.menu];
+    if (it) copyText(it.url, 'Đã sao chép link: ' + fileLabel(it.url, +menuBtn.dataset.menu, it.page));
+    return;
+  }
   const t = e.target.closest('.tile'); if (!t || !G) return;
   const k = +t.dataset.k, it = G.view[k];
   if (t.classList.contains('bad')) { t.outerHTML = tileHTML(it, k); return; }
@@ -1143,7 +1317,7 @@ grid.addEventListener('click', (e) => {
   const imgs = G.view.filter((x) => x.type === 'image'); openLB(imgs, imgs.indexOf(it));
 });
 
-/* ───────── Lightbox: vuốt, chụm để zoom, chạm đúp ───────── */
+/* ───────── Lightbox ───────── */
 const lb = $('#lb'), lbImg = $('#lb-img'), stage = $('#lb-stage');
 const L = { list: [], i: 0, s: 1, x: 0, y: 0 };
 const applyT = (anim) => { lbImg.style.transition = anim ? 'transform .2s' : 'none'; lbImg.style.transform = `translate(${L.x}px,${L.y}px) scale(${L.s})`; };
@@ -1208,7 +1382,7 @@ function loadSettings() {
   $('#set-domain').value = cfg.domain; $('#set-remote').value = cfg.remote; $('#set-proxy').value = cfg.proxy; $('#set-key').value = cfg.key;
   $('#set-cookie').value = cfg.cookie; $('#set-ua').value = cfg.ua; $('#set-img').value = cfg.img; $('#set-thumbs').checked = cfg.thumbs; $('#set-cols').value = String(cfg.cols);
   $('#dom-note').textContent = cfg.manual ? 'Đang dùng domain bạn nhập tay (không tự cập nhật).' : 'Domain tự cập nhật từ file cấu hình mỗi lần mở app.';
-  document.documentElement.style.setProperty('--cols', cfg.cols);
+  syncColPills();
 }
 $('#dom-save').onclick = () => { const d = normDomain($('#set-domain').value); if (!d) return toast('Domain không hợp lệ'); set('domain', d); set('manual', true); F.cache.clear(); loadSettings(); toast('Đã lưu domain'); checkConn(); };
 $('#set-remote').onchange = (e) => set('remote', e.target.value.trim());
