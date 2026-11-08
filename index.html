@@ -34,8 +34,10 @@ h1{font-size:32px;font-weight:800;letter-spacing:-.5px;margin:0 0 12px}
 p{margin:2px 0 0}
 .card{background:#fff;border-radius:24px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
 .ibox{width:40px;height:40px;border-radius:16px;background:var(--soft);color:var(--brand);display:flex;align-items:center;justify-content:center;flex:none}
-.circle{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
-input[type=text],input[type=url],input[type=password],textarea,select{width:100%;margin-top:14px;background:var(--input);border:0;border-radius:16px;padding:0 16px;height:48px;outline:none}
+.circle{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .15s}
+.circle.soft-c{background:var(--soft);color:var(--brand)}
+.circle:active{transform:scale(.92)}
+input[type=text],input[type=url],input[type=password],input[type=number],textarea,select{width:100%;margin-top:14px;background:var(--input);border:0;border-radius:16px;padding:0 16px;height:48px;outline:none}
 textarea{padding:12px 16px;height:84px;resize:none}
 select{appearance:none;-webkit-appearance:none}
 label.f{display:block;margin-top:14px;font-weight:600;font-size:14px}
@@ -56,16 +58,43 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .dd-menu button.on{background:var(--soft);color:var(--brand);font-weight:600}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .chips:empty{display:none}
-.chips button{background:var(--chip);border-radius:999px;padding:6px 12px;font-size:13px}
+.chips button{background:var(--chip);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500}
+.chips button.on{background:var(--brand);color:#fff;font-weight:600}
 .warn{background:var(--warn);border:1px solid #F3E3C7;border-radius:24px;padding:16px;display:flex;gap:12px;margin-bottom:16px}
 .warn svg{color:#EA8A1C;flex:none}
 .warn.ok svg{color:#2E7D4F}.warn.bad svg{color:#DC2626}
 .err{color:#DC2626;font-size:14px;padding:4px}
-.rowc{display:flex;align-items:center;gap:12px;padding:16px;margin-bottom:12px;cursor:pointer}
+.rowc{display:flex;align-items:center;gap:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:transform .12s}
 .rowc b{font-weight:600}
+.rowc.is-read b{color:var(--muted);font-weight:500}
+.badge{display:inline-block;background:var(--soft);color:var(--brand);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;margin-right:6px;vertical-align:1px}
+.badge.pin{background:#FEF3C7;color:#92400E}
+.badge.prog{background:#E0E7FF;color:#1E40AF;margin-left:6px;margin-right:0}
 .cats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.cats .card{margin:0;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer}
-.cats .ibox{width:48px;height:48px}
+.cats .card{margin:0;min-height:136px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;transition:border .15s}
+.cats .card.active-cat{outline:2px solid var(--brand)}
+.cats .ibox{width:46px;height:46px}
+/* Forum Explorer */
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.f-box{background:var(--input);border-radius:18px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.f-box.on{background:var(--soft);border-color:var(--brand)}
+.f-box b{font-size:14px;display:block}
+.f-box small{font-size:11.5px;color:var(--muted)}
+.star-btn{font-size:17px;color:#9CA3AF;padding:4px;line-height:1}
+.star-btn.on{color:#F59E0B}
+.pnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 6px}
+.pnav button{height:40px;padding:0 16px;border-radius:20px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:4px}
+.pnav button:disabled{opacity:.4}
+.pnav input{width:68px;height:40px;margin:0;text-align:center;border-radius:14px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:14px;padding:0 6px}
+/* Post Reader */
+.post-card{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+.post-card.is-op{border-left:4px solid var(--brand)}
+.post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
+.post-body{font-size:15.5px;line-height:1.6;word-break:break-word;color:var(--ink)}
+.post-body blockquote{margin:8px 0;padding:10px 14px;background:var(--input);border-left:3px solid var(--brand);border-radius:12px;font-size:13.5px;color:var(--muted)}
+.post-body img{max-width:100%;border-radius:14px;margin:8px 0;display:block;cursor:zoom-in}
+.post-body a{color:var(--brand);text-decoration:underline}
 .sw{position:relative;width:51px;height:31px;flex:none}
 .sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:1}
 .sw span{position:absolute;inset:0;background:#D1D5DB;border-radius:99px;transition:.2s}
@@ -79,16 +108,16 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 #tabs{position:fixed;z-index:20;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:528px;bottom:var(--barb);height:64px;border-radius:32px;background:#fff;box-shadow:0 10px 30px rgba(11,31,20,.16);display:flex;align-items:center;padding:0 8px}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
-/* overlay: thư viện, lightbox, video */
+/* overlay: thư viện, reader, lightbox, video */
 .ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}
 .ov.dark{background:#000;z-index:40;color:#fff}
-.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 6px) 12px 10px}
+.g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 6px) 12px 10px;max-width:560px;width:100%;margin:0 auto}
 .rbtn{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
 .rbtn.dim{background:rgba(0,0,0,.55);color:#fff;box-shadow:none}
 .rbtn.on{background:var(--brand);color:#fff}
-.pad{padding:0 16px 8px}
+.pad{padding:0 16px 8px;max-width:560px;width:100%;margin:0 auto}
 .bar{height:3px;background:var(--chip);border-radius:3px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .25s}
-.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px)}
+.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px);max-width:560px;width:100%;margin:0 auto}
 .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:3px}
 .tile{position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:#E5E7EB;display:flex;flex-direction:column;align-items:center;justify-content:center;content-visibility:auto;contain-intrinsic-size:120px}
 .tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -137,24 +166,88 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
 </section>
 
 <section class="screen" id="s-latest">
-  <div class="row" style="justify-content:space-between"><h1>Mới nhất</h1><button class="rbtn" id="l-refresh" aria-label="Làm mới"><i data-ic="refresh"></i></button></div>
+  <div class="row" style="justify-content:space-between;margin-bottom:8px">
+    <h1>Mới nhất</h1>
+    <button class="rbtn" id="l-refresh" aria-label="Làm mới"><i data-ic="refresh"></i></button>
+  </div>
+  <div class="seg" id="seg-latest" style="margin-top:0;margin-bottom:14px">
+    <button data-v="/whats-new/posts/" class="on">Mới bình luận</button>
+    <button data-v="/find-threads/unanswered">Chưa trả lời</button>
+    <button data-v="/whats-new/">Hoạt động</button>
+  </div>
   <div id="latest"></div>
 </section>
 
 <section class="screen" id="s-cat">
   <h1>Danh mục</h1>
   <div class="cats">
+    <button class="card active-cat" data-c="forums"><div class="ibox"><i data-ic="compass" data-s="24"></i></div><div><b>Chuyên mục (Forums)</b><p class="muted sm">Xem theo từng box</p></div></button>
     <button class="card" data-c="link"><div class="ibox"><i data-ic="image" data-s="24"></i></div><div><b>Lọc ảnh/video</b><p class="muted sm">Từ link hoặc bài viết</p></div></button>
-    <button class="card" data-c="kw"><div class="ibox"><i data-ic="file-text" data-s="24"></i></div><div><b>Tìm bài viết</b><p class="muted sm">Theo từ khóa</p></div></button>
-    <button class="card" data-c="au"><div class="ibox"><i data-ic="user" data-s="24"></i></div><div><b>Tìm theo người đăng</b><p class="muted sm">Theo tên tác giả</p></div></button>
-    <button class="card" data-c="post"><div class="ibox"><i data-ic="message" data-s="24"></i></div><div><b>Tìm bình luận</b><p class="muted sm">Trong nội dung bài</p></div></button>
-    <button class="card" data-c="recent"><div class="ibox"><i data-ic="history" data-s="24"></i></div><div><b>Đã xem gần đây</b><p class="muted sm">30 chủ đề gần nhất</p></div></button>
+    <button class="card" data-c="recent"><div class="ibox"><i data-ic="history" data-s="24"></i></div><div><b>Đã xem gần đây</b><p class="muted sm">Lưu cả trang đang đọc</p></div></button>
     <button class="card" data-c="saved"><div class="ibox"><i data-ic="bookmark" data-s="24"></i></div><div><b>Đã lưu</b><p class="muted sm">Chủ đề bạn đánh dấu</p></div></button>
+    <button class="card" data-c="kw"><div class="ibox"><i data-ic="file-text" data-s="24"></i></div><div><b>Tìm bài viết</b><p class="muted sm">Theo từ khóa</p></div></button>
+    <button class="card" data-c="au"><div class="ibox"><i data-ic="user" data-s="24"></i></div><div><b>Tìm người đăng</b><p class="muted sm">Theo tên tác giả</p></div></button>
   </div>
+
+  <!-- Bảng duyệt theo từng Forums -->
+  <div id="p-forums">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><b class="t17">Chọn Box / Diễn đàn</b><p class="muted sm">Chạm ★ để ghim box hay xem lên đầu</p></div>
+        <button class="rbtn" id="f-sync" title="Quét danh sách Box từ trang chủ" style="width:38px;height:38px;background:var(--soft);color:var(--brand);box-shadow:none"><i data-ic="refresh" data-s="18"></i></button>
+      </div>
+      <div class="f-grid" id="f-boxes"></div>
+
+      <button class="acc" id="f-custom-acc">Mở Box bằng link hoặc mã tùy chọn <i data-ic="chevron-down"></i></button>
+      <div id="f-custom-box" hidden>
+        <div class="row gap" style="margin-top:8px">
+          <input type="text" id="f-custom-inp" placeholder="VD: chuyen-tro-linh-tinh.19" style="margin:0;flex:1;height:42px">
+          <button class="btn sm2" id="f-custom-go" style="margin:0;height:42px">Mở</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="f-ctrl">
+      <div class="row" style="justify-content:space-between">
+        <b class="t17 clip" id="f-cur-name">Chuyện trò linh tinh</b>
+        <small class="muted" id="f-page-info">Trang 1</small>
+      </div>
+      <div class="seg" id="f-sort">
+        <button data-v="last_post_date" class="on">Mới bình luận</button>
+        <button data-v="post_date">Mới đăng</button>
+        <button data-v="reply_count">Sôi nổi</button>
+        <button data-v="view_count">Xem nhiều</button>
+      </div>
+      <!-- Thanh lọc Prefix và Lọc nhanh -->
+      <div class="chips" id="f-prefixes"></div>
+      <div class="row gap" style="margin-top:12px">
+        <input type="text" id="f-filter" placeholder="Lọc nhanh tiêu đề / tác giả..." style="margin:0;height:40px;font-size:14px;flex:1">
+        <button class="btn soft" id="f-hide-pin" style="margin:0;width:auto;padding:0 14px;height:40px;font-size:13px">Ẩn bài ghim</button>
+      </div>
+    </div>
+
+    <div id="f-threads"></div>
+
+    <div class="pnav" id="f-pnav" hidden>
+      <button id="f-prev"><i data-ic="arrow-left" data-s="16"></i> Trước</button>
+      <div class="row gap" style="gap:4px">
+        <span class="sm muted">Trang</span>
+        <input type="number" id="f-jump" min="1" value="1">
+        <span class="sm muted" id="f-total">/ 1</span>
+      </div>
+      <button id="f-next">Sau <i data-ic="arrow-right" data-s="16"></i></button>
+    </div>
+  </div>
+
+  <!-- Bảng dán link quét ảnh -->
   <div class="card" id="p-link" hidden>
     <b>Dán link bài viết</b>
     <input type="url" id="link" placeholder="https://xamvn.work/threads/..." autocapitalize="none" autocorrect="off">
-    <div class="row gap"><button class="btn soft" id="paste" style="flex:1">Dán từ clipboard</button><button class="btn" id="scan" style="flex:1;margin-top:8px;height:44px">Quét ảnh &amp; video</button></div>
+    <div class="row gap">
+      <button class="btn soft" id="paste" style="flex:1">Dán clipboard</button>
+      <button class="btn soft" id="read-link" style="flex:1">Đọc bài</button>
+      <button class="btn" id="scan" style="flex:1;margin-top:8px;height:44px">Quét ảnh</button>
+    </div>
   </div>
   <div id="cat-list"></div>
 </section>
@@ -200,7 +293,7 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
 
   <div class="card">
     <div class="row gap"><i data-ic="trash"></i><b>Dữ liệu</b></div>
-    <button class="btn soft" id="clr-hist">Xóa lịch sử xem &amp; tìm kiếm</button>
+    <button class="btn soft" id="clr-hist">Xóa lịch sử xem, tiến độ đọc &amp; tìm kiếm</button>
     <button class="btn soft" id="clr-jar">Xóa cookie phiên của proxy</button>
     <p class="kv"><b>Cài lên màn hình chính (iPhone):</b> mở trang này bằng Safari → nút Chia sẻ → <i>Thêm vào Màn hình chính</i>. App sẽ chạy toàn màn hình như app thật.<br>
     <b>Mở nhanh từ bài viết:</b> tạo bookmark Safari có địa chỉ <code>javascript:location='https://TEN-MIEN-CUA-BAN/?u='+encodeURIComponent(location.href)</code> rồi bấm khi đang xem bài trên diễn đàn.</p>
@@ -215,10 +308,40 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <button data-t="more"><i data-ic="dots"></i><span>Thêm</span></button>
 </nav>
 
+<!-- OVERLAY 1: TRÌNH ĐỌC BÀI VIẾT (THREAD READER) -->
+<div class="ov" id="rdr" hidden>
+  <header class="g-head">
+    <button class="rbtn" id="r-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
+    <div class="grow"><b class="clip t17" id="r-title" style="display:block">Đang tải bài viết…</b><small class="muted" id="r-sub"></small></div>
+    <button class="rbtn" id="r-gal" title="Quét toàn bộ Ảnh/Video trong chủ đề này"><i data-ic="image" data-s="20"></i></button>
+    <button class="rbtn" id="r-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
+  </header>
+  <div class="pad">
+    <div class="seg" id="r-seg" style="margin-top:2px">
+      <button data-v="all" class="on">Tất cả</button>
+      <button data-v="op">Chỉ chủ thớt (OP)</button>
+      <button data-v="media">Có ảnh/video</button>
+    </div>
+  </div>
+  <div class="g-scroll" id="r-scroll">
+    <div id="r-list"></div>
+    <div class="pnav" id="r-pnav" hidden>
+      <button id="r-prev"><i data-ic="arrow-left" data-s="16"></i> Trang trước</button>
+      <div class="row gap" style="gap:4px">
+        <input type="number" id="r-jump" min="1" value="1">
+        <span class="sm muted" id="r-total">/ 1</span>
+      </div>
+      <button id="r-next">Trang sau <i data-ic="arrow-right" data-s="16"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY 2: THƯ VIỆN ẢNH/VIDEO (GALLERY) -->
 <div class="ov" id="gal" hidden>
   <header class="g-head">
     <button class="rbtn" id="g-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
     <div class="grow"><b class="clip t17" id="g-title" style="display:block">Đang tải…</b><small class="muted" id="g-sub"></small></div>
+    <button class="rbtn" id="g-read" title="Đọc nội dung chữ"><i data-ic="file-text" data-s="20"></i></button>
     <button class="rbtn" id="g-save" aria-label="Lưu bài"><i data-ic="bookmark" data-s="20"></i></button>
     <button class="rbtn" id="g-copy" aria-label="Sao chép link ảnh"><i data-ic="copy" data-s="20"></i></button>
   </header>
@@ -227,6 +350,7 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <div class="g-scroll"><div id="g-msg"></div><div class="grid" id="g-grid"></div></div>
 </div>
 
+<!-- OVERLAY 3: LIGHTBOX -->
 <div class="ov dark" id="lb" hidden>
   <div class="stage" id="lb-stage"><img id="lb-img" alt="" draggable="false"></div>
   <div class="lb-top">
@@ -237,6 +361,7 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <button class="nav l" id="lb-prev" aria-label="Trước">‹</button><button class="nav r" id="lb-next" aria-label="Sau">›</button>
 </div>
 
+<!-- OVERLAY 4: VIDEO -->
 <div class="ov dark" id="vm" hidden>
   <div class="lb-top"><button class="rbtn dim" id="vm-close" aria-label="Đóng"><i data-ic="x"></i></button><a class="pill" id="vm-open" target="_blank" rel="noopener noreferrer">Mở tab mới</a></div>
   <div class="vm-body" id="vm-body"></div>
@@ -258,6 +383,7 @@ const IC = {
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
   dots: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
   'alert-triangle': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
   'chevron-down': '<path d="m6 9 6 6 6-6"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
@@ -270,6 +396,7 @@ const IC = {
   history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>',
   bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
   'arrow-left': '<path d="m12 19-7-7 7-7M19 12H5"/>',
+  'arrow-right': '<path d="m12 5 7 7-7 7M5 12h14"/>',
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   refresh: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/>',
   globe: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
@@ -294,13 +421,21 @@ const set = (k, v) => { cfg[k] = v; store.set(k, v); };
 let jar = store.get('jar', {});
 const toast = (() => { let t; return (m) => { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2400); }; })();
 
-/* ───────── Tiện ích URL ───────── */
+/* ───────── Tiện ích URL & Tiến độ đọc ───────── */
 const hostOf = (u) => String(u).replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
 const originOf = (u) => (String(u).match(/^https?:\/\/[^/]+/i) || [''])[0];
-const normThread = (u) => { const m = u.match(/^(https?:\/\/[^/]+\/threads\/[^/?#]+)/i); return m ? m[1] : u.split('#')[0]; };
+const normThread = (u) => { const m = String(u).match(/^(https?:\/\/[^/]+\/threads\/[^/?#]+)/i); return m ? m[1] : String(u).split('#')[0]; };
+const threadKey = (u) => { const m = String(u).match(/\/threads\/([^/?#]+)/i); return m ? m[1] : normThread(u); };
 const abs = (raw, base) => { if (!raw) return null; raw = raw.trim(); if (!raw || /^(data|javascript|blob):/i.test(raw)) return null; try { return new URL(raw, base + '/').href; } catch { return null; } };
 const normDomain = (s) => { s = (s || '').trim(); if (!s) return null; if (!/^https?:\/\//i.test(s)) s = 'https://' + s; const m = s.match(/^https?:\/\/[^/\s?#]+/i); return m ? m[0].toLowerCase() : null; };
-const rebase = (u) => { const o = originOf(u); return o && o.toLowerCase() !== cfg.domain && /\/(threads|posts|goto)\//.test(u) ? cfg.domain + u.slice(o.length) : u; };
+const rebase = (u) => { const o = originOf(u); return o && o.toLowerCase() !== cfg.domain && /\/(threads|posts|goto|r|forums)\//.test(u) ? cfg.domain + u.slice(o.length) : u; };
+
+const getProg = (u) => (store.get('progress', {})[threadKey(u)] || null);
+const saveProg = (u, page, total = 1) => {
+  const p = store.get('progress', {});
+  p[threadKey(u)] = { page, total, t: Date.now() };
+  store.set('progress', p);
+};
 
 /* ───────── Mạng: gọi diễn đàn qua proxy ───────── */
 const parseCk = (s) => Object.fromEntries((s || '').split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }));
@@ -326,14 +461,15 @@ async function fx(url, { method = 'GET', body, contentType } = {}) {
   return { html: j.html, url: j.url };
 }
 
-/* ───────── Parser HTML XenForo 2 (DOMParser có sẵn trong trình duyệt) ───────── */
+/* ───────── Parser HTML XenForo 2 ───────── */
 const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
 const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
+
 function parsePage(html, base) {
   const d = dp(html), media = [], seen = new Set();
   const add = (type, raw) => { const u = abs(raw, base); if (!u || seen.has(u)) return; seen.add(u); media.push({ type, url: u }); };
   d.querySelectorAll('.message-body').forEach((body) => {
-    body.querySelectorAll('img.bbImage').forEach((img) => {
+    body.querySelectorAll('img.bbImage, img').forEach((img) => {
       if (/avatar|smilie|emoji/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
       add('image', img.dataset.url || img.dataset.src || img.getAttribute('src'));
     });
@@ -347,21 +483,102 @@ function parsePage(html, base) {
   const t = d.querySelector('h1.p-title-value') || d.querySelector('title');
   return { media, last, title: t ? t.textContent.replace(/\s+/g, ' ').trim() : '' };
 }
+
 function parseList(html, base) {
   const d = dp(html), out = [], seen = new Set();
-  d.querySelectorAll('.structItem-title a:not(.labelLink), .contentRow-title a').forEach((a) => {
+  d.querySelectorAll('.structItem--thread, .contentRow').forEach((row) => {
+    const a = row.querySelector('.structItem-title a:not(.labelLink), .contentRow-title a');
+    if (!a) return;
     const h = abs(a.getAttribute('href'), base);
     if (!h || !/\/(threads|posts)\//.test(h)) return;
     const url = normThread(h), title = a.textContent.replace(/\s+/g, ' ').trim();
     if (!title || seen.has(url)) return;
     seen.add(url);
-    const row = a.closest('.contentRow-main, .structItem-cell--main');
-    const sn = row && row.querySelector('.contentRow-snippet'), mi = row && row.querySelector('.contentRow-minor, .structItem-minor');
-    out.push({ url, title, snippet: sn ? sn.textContent.replace(/\s+/g, ' ').trim() : '', meta: mi ? mi.textContent.replace(/\s+/g, ' ').trim() : '' });
+    const label = row.querySelector('.structItem-title .label, .label');
+    const prefix = label ? label.textContent.replace(/\s+/g, ' ').trim() : '';
+    const isSticky = row.classList.contains('is-sticky') || !!row.querySelector('.structItem-status--sticky');
+    const author = row.dataset.author || (row.querySelector('.username') ? row.querySelector('.username').textContent.trim() : '');
+    const dds = row.querySelectorAll('.structItem-cell--meta dd');
+    const replies = dds[0] ? dds[0].textContent.trim() : '';
+    const views = dds[1] ? dds[1].textContent.trim() : '';
+    const timeEl = row.querySelector('.structItem-cell--latest time, .structItem-startDate time, time');
+    const time = timeEl ? timeEl.textContent.trim() : '';
+    const sn = row.querySelector('.contentRow-snippet');
+    const metaParts = [author ? `👤 ${author}` : '', replies ? `💬 ${replies}` : '', views ? `👁️ ${views}` : '', time ? `🕒 ${time}` : ''].filter(Boolean);
+    const fallbackMi = row.querySelector('.contentRow-minor, .structItem-minor');
+    out.push({
+      url, title, prefix, isSticky, author,
+      snippet: sn ? sn.textContent.replace(/\s+/g, ' ').trim() : '',
+      meta: metaParts.length ? metaParts.join(' · ') : (fallbackMi ? fallbackMi.textContent.replace(/\s+/g, ' ').trim() : ''),
+    });
   });
-  return out;
+  let last = 1;
+  d.querySelectorAll('.pageNav-page a, .pageNav a[href]').forEach((a) => {
+    const n = +((a.getAttribute('href') || '').match(/page-(\d+)/) || [])[1] || +a.textContent.trim();
+    if (n > last) last = n;
+  });
+  return { list: out, last };
 }
+
+function parseThreadPosts(html, base) {
+  const d = dp(html), posts = [];
+  let last = 1;
+  d.querySelectorAll('.pageNav-page a, .pageNav a[href]').forEach((a) => {
+    const n = +((a.getAttribute('href') || '').match(/page-(\d+)/) || [])[1] || +a.textContent.trim();
+    if (n > last) last = n;
+  });
+  const t = d.querySelector('h1.p-title-value') || d.querySelector('title');
+  const title = t ? t.textContent.replace(/\s+/g, ' ').trim() : '';
+  const opEl = d.querySelector('.p-description .username');
+  let opAuthor = opEl ? opEl.textContent.trim() : '';
+
+  d.querySelectorAll('article.message--post, .message--post').forEach((art, idx) => {
+    const au = art.dataset.author || (art.querySelector('.message-name .username, .username') ? art.querySelector('.message-name .username, .username').textContent.trim() : 'Ẩn danh');
+    if (idx === 0 && !opAuthor) opAuthor = au;
+    const timeEl = art.querySelector('.message-attribution-main time, time');
+    const time = timeEl ? timeEl.textContent.trim() : '';
+    const numEl = art.querySelector('.message-attribution-opposite a:last-child');
+    const num = numEl ? numEl.textContent.trim() : '#' + (idx + 1);
+    const bodyEl = art.querySelector('.message-body .bbWrapper, .message-body');
+    if (!bodyEl) return;
+
+    const clone = bodyEl.cloneNode(true);
+    let hasMedia = false;
+    clone.querySelectorAll('script, style').forEach((s) => s.remove());
+    clone.querySelectorAll('img').forEach((img) => {
+      if (/smilie|emoji/i.test(img.className) || img.dataset.smilie) return;
+      const raw = img.dataset.url || img.dataset.src || img.getAttribute('src');
+      const u = abs(raw, base);
+      if (u) {
+        hasMedia = true;
+        img.src = srcFor(u, chainFor(false)[0]);
+        img.dataset.raw = u;
+        img.removeAttribute('srcset');
+        img.setAttribute('loading', 'lazy');
+      }
+    });
+    clone.querySelectorAll('video, iframe').forEach(() => { hasMedia = true; });
+    clone.querySelectorAll('.bbCodeBlock-expandLink, .js-expandWatch').forEach((e) => e.remove());
+
+    posts.push({
+      author: au,
+      isOp: opAuthor && au.toLowerCase() === opAuthor.toLowerCase(),
+      time, num, hasMedia,
+      html: clone.innerHTML,
+    });
+  });
+  return { title, opAuthor, last, posts };
+}
+
 const blockMsg = (html) => { const e = dp(html).querySelector('.blockMessage, .block-body--error, .overlay-title'); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+
+/* ───────── Nguồn ảnh: tự động thử nhiều đường ───────── */
+const imgApi = () => cfg.proxy.replace(/proxy$/, 'img');
+const srcFor = (u, m) => m === 'direct' ? u
+  : m === 'wsrv' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u)
+  : m === 'wsrvT' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=420&q=70&output=webp'
+  : imgApi() + '?url=' + encodeURIComponent(u) + '&ref=' + encodeURIComponent(cfg.domain + '/') + (cfg.key ? '&k=' + encodeURIComponent(cfg.key) : '');
+const chainFor = (thumb) => { const m = cfg.img; if (m === 'auto') return thumb && cfg.thumbs ? ['wsrvT', 'direct', 'wsrv', 'own'] : ['direct', 'wsrv', 'own']; if (m === 'wsrv') return thumb ? ['wsrvT', 'wsrv'] : ['wsrv']; return [m]; };
 
 /* ───────── Scraper: quét mọi trang /page-N của chủ đề ───────── */
 async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
@@ -373,7 +590,6 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   if (onTitle) onTitle(p1.title);
   const total = p1.last, by = new Map([[cur, p1.media]]), bad = [];
   let done = 1;
-  // Chỉ đẩy "phần đầu liền mạch" (trang 1..k) để lưới chỉ thêm vào cuối, không bị chèn giữa
   const emit = () => { const seen = new Set(), list = []; for (let p = 1; p <= total && by.has(p); p++) for (const m of by.get(p)) if (!seen.has(m.url)) { seen.add(m.url); list.push(m); } onProgress(list, done, total); };
   emit();
   const q = []; for (let p = 1; p <= total; p++) if (p !== cur) q.push(p);
@@ -402,25 +618,20 @@ async function searchForum({ q, by, exact, order }) {
   if (by === 'thread') p['c[title_only]'] = '1';
   if (by !== 'post') p.grouped = '1';
   const res = await fx(cfg.domain + '/search/search', { method: 'POST', contentType: 'application/x-www-form-urlencoded', body: Object.entries(p).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&') });
-  const list = parseList(res.html, originOf(res.url) || cfg.domain);
+  const { list } = parseList(res.html, originOf(res.url) || cfg.domain);
   if (!list.length) throw new Error(blockMsg(res.html) || 'Không có kết quả phù hợp');
   return list;
 }
-async function fetchLatest() {
+
+let latestPath = '/whats-new/posts/';
+async function fetchLatest(customPath) {
   let lastErr;
-  for (const path of ['/whats-new/posts/', '/whats-new/', '/find-threads/all']) {
-    try { const r = await fx(cfg.domain + path); const l = parseList(r.html, originOf(r.url) || cfg.domain); if (l.length) return l; } catch (e) { lastErr = e; if (e.code === 'CF') throw e; }
+  const paths = customPath ? [customPath, '/whats-new/posts/', '/whats-new/'] : ['/whats-new/posts/', '/whats-new/', '/find-threads/all'];
+  for (const path of paths) {
+    try { const r = await fx(cfg.domain + path); const { list } = parseList(r.html, originOf(r.url) || cfg.domain); if (list.length) return list; } catch (e) { lastErr = e; if (e.code === 'CF') throw e; }
   }
   throw lastErr || new Error('Không đọc được danh sách bài mới');
 }
-
-/* ───────── Nguồn ảnh: tự động thử nhiều đường ───────── */
-const imgApi = () => cfg.proxy.replace(/proxy$/, 'img');
-const srcFor = (u, m) => m === 'direct' ? u
-  : m === 'wsrv' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u)
-  : m === 'wsrvT' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u) + '&w=420&q=70&output=webp'
-  : imgApi() + '?url=' + encodeURIComponent(u) + '&ref=' + encodeURIComponent(cfg.domain + '/') + (cfg.key ? '&k=' + encodeURIComponent(cfg.key) : '');
-const chainFor = (thumb) => { const m = cfg.img; if (m === 'auto') return thumb && cfg.thumbs ? ['wsrvT', 'direct', 'wsrv', 'own'] : ['direct', 'wsrv', 'own']; if (m === 'wsrv') return thumb ? ['wsrvT', 'wsrv'] : ['wsrv']; return [m]; };
 
 /* ───────── Điều hướng overlay + nút Back của trình duyệt ───────── */
 const stack = [];
@@ -429,25 +640,56 @@ const uiBack = () => { if (stack.length) history.back(); };
 addEventListener('popstate', () => { const c = stack.pop(); if (c) c(); });
 
 /* ───────── Tab ───────── */
-let latestLoaded = false;
+let latestLoaded = false, forumsLoaded = false;
 function showTab(t) {
   $$('.screen').forEach((s) => s.classList.toggle('on', s.id === 's-' + t));
   $$('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
   scrollTo(0, 0);
   if (t === 'latest' && !latestLoaded) loadLatest();
+  if (t === 'cat' && !forumsLoaded) { forumsLoaded = true; renderForumBoxes(); loadForumThreads(); }
 }
 $('#tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) showTab(b.dataset.t); });
 
-/* ───────── Thành phần dùng chung ───────── */
+/* ───────── Thành phần dùng chung (Danh sách chủ đề) ───────── */
 function seg(el, cb) {
   el.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; $$('button', el).forEach((x) => x.classList.toggle('on', x === b)); el.dataset.v = b.dataset.v; if (cb) cb(b.dataset.v); });
   el.dataset.v = ($('.on', el) || $('button', el)).dataset.v;
   return el;
 }
 const setSeg = (el, v) => { const b = $(`button[data-v="${v}"]`, el); if (b) b.click(); };
-const rowHTML = (t) => `<div class="card rowc" data-u="${esc(t.url)}" data-t="${esc(t.title)}"><div class="grow"><b class="clip2">${esc(t.title)}</b>${t.snippet ? `<p class="muted sm clip2">${esc(t.snippet)}</p>` : ''}${t.meta ? `<small class="muted clip" style="display:block;margin-top:2px">${esc(t.meta)}</small>` : ''}</div><span class="circle">${ic('image', 18)}</span></div>`;
-const bindRows = (el) => el.addEventListener('click', (e) => { const r = e.target.closest('.rowc'); if (r) openGallery(r.dataset.u, r.dataset.t); });
-const errHTML = (e) => `<p class="err">${esc(e.message)}</p>` + (e.code === 'CF' ? `<p class="kv" style="padding:0 4px">Cloudflare chặn máy chủ proxy. Thử dán cookie <code>cf_clearance</code> ở tab Thêm, hoặc đổi sang proxy khác (xem hướng dẫn).</p>` : '');
+
+const rowHTML = (t) => {
+  const prog = getProg(t.url);
+  return `<div class="card rowc ${prog ? 'is-read' : ''}" data-u="${esc(t.url)}" data-t="${esc(t.title)}">
+    <div class="grow">
+      <b class="clip2">
+        ${t.isSticky ? '<span class="badge pin">Ghim</span>' : ''}
+        ${t.prefix ? `<span class="badge">${esc(t.prefix)}</span>` : ''}
+        ${esc(t.title)}
+      </b>
+      ${t.snippet ? `<p class="muted sm clip2">${esc(t.snippet)}</p>` : ''}
+      <small class="muted clip" style="display:block;margin-top:4px">
+        ${esc(t.meta || '')}
+        ${prog ? `<span class="badge prog">Đọc tiếp tr.${prog.page}</span>` : ''}
+      </small>
+    </div>
+    <button class="circle soft-c act-read" title="Đọc bài viết">${ic('file-text', 18)}</button>
+    <button class="circle act-gal" title="Quét Ảnh & Video">${ic('image', 18)}</button>
+  </div>`;
+};
+
+const bindRows = (el) => el.addEventListener('click', (e) => {
+  const r = e.target.closest('.rowc');
+  if (!r) return;
+  if (e.target.closest('.act-gal')) {
+    openGallery(r.dataset.u, r.dataset.t);
+  } else {
+    const prog = getProg(r.dataset.u);
+    openReader(r.dataset.u, r.dataset.t, prog ? prog.page : 1);
+  }
+});
+
+const errHTML = (e) => `<p class="err">${esc(e.message)}</p>` + (e.code === 'CF' ? `<p class="kv" style="padding:0 4px">Cloudflare chặn máy chủ proxy. Thử dán cookie <code>cf_clearance</code> ở tab Thêm, hoặc đổi sang proxy khác.</p>` : '');
 const spinHTML = '<div class="row" style="justify-content:center;padding:24px"><div class="spin d"></div></div>';
 
 /* ───────── Tìm kiếm ───────── */
@@ -487,7 +729,7 @@ async function checkConn() {
   const box = $('#status');
   const show = (cls, t, d, act = '') => { box.className = 'warn ' + cls; $('#st-t').textContent = t; $('#st-d').textContent = d; $('#st-a').innerHTML = act; };
   show('', 'Đang kiểm tra kết nối', 'Đang gọi ' + hostOf(cfg.domain) + ' qua proxy…');
-  try { await fx(cfg.domain + '/'); show('ok', 'Đã kết nối ' + hostOf(cfg.domain), 'Mọi thứ sẵn sàng. Ảnh bị chặn sẽ tự đổi sang đường khác.'); return; }
+  try { await fx(cfg.domain + '/'); show('ok', 'Đã kết nối ' + hostOf(cfg.domain), 'Mọi thứ sẵn sàng. Chạm tiêu đề để đọc bài, chạm nút ảnh để quét ảnh.'); return; }
   catch (e) {
     if (e.code !== 'CF') for (const fb of cfg.fallbacks) { try { await fx(fb + '/'); set('domain', fb); $('#set-domain').value = fb; show('ok', 'Đã chuyển sang ' + hostOf(fb), 'Domain cũ không truy cập được nên app tự dùng domain dự phòng.'); return; } catch {} }
     if (e.code === 'CF') show('', hostOf(cfg.domain) + ' đang yêu cầu xác thực', 'Cloudflare chặn máy chủ proxy. Xem tab Thêm → Proxy & Cloudflare.', `<button class="btn sm2" id="st-open">Mở trang gốc</button>`);
@@ -497,32 +739,347 @@ async function checkConn() {
 $('#st-a').onclick = (e) => { if (e.target.id === 'st-retry') checkConn(); if (e.target.id === 'st-open') open(cfg.domain, '_blank', 'noopener'); };
 
 /* ───────── Mới nhất ───────── */
+seg($('#seg-latest'), (v) => { latestPath = v; loadLatest(); });
 async function loadLatest() {
   latestLoaded = true; const el = $('#latest'); el.innerHTML = spinHTML;
-  try { el.innerHTML = (await fetchLatest()).map(rowHTML).join(''); } catch (e) { latestLoaded = false; el.innerHTML = errHTML(e); }
+  try { el.innerHTML = (await fetchLatest(latestPath)).map(rowHTML).join(''); } catch (e) { latestLoaded = false; el.innerHTML = errHTML(e); }
 }
 $('#l-refresh').onclick = loadLatest; bindRows($('#latest'));
 
-/* ───────── Danh mục ───────── */
+/* ───────── Danh mục & DUYỆT THEO TỪNG FORUMS ───────── */
+const DEFAULT_FORUMS = [
+  { path: '/r/chuyen-tro-linh-tinh.19/', name: 'Chuyện trò linh tinh', group: 'Đại sảnh' },
+  { path: '/r/diem-bao.26/', name: 'Điểm báo', group: 'Đại sảnh' },
+  { path: '/r/khu-vui-choi-giai-tri.10/', name: 'Khu vui chơi giải trí', group: 'Giải trí' },
+  { path: '/r/tam-su-eva-adam.22/', name: 'Tâm sự - Tình cảm', group: 'Đời sống' },
+  { path: '/r/the-thao.34/', name: 'Thể thao & Bóng đá', group: 'Giải trí' },
+  { path: '/r/cong-nghe-it.30/', name: 'Công nghệ & IT', group: 'Chuyên môn' },
+  { path: '/r/tai-chinh-chung-khoan.45/', name: 'Tài chính - Chứng khoán', group: 'Chuyên môn' },
+  { path: '/r/xe-co.38/', name: 'Xe cộ', group: 'Đời sống' },
+];
+
+const F = {
+  list: store.get('forums_list', DEFAULT_FORUMS),
+  pins: store.get('forums_pins', ['/r/chuyen-tro-linh-tinh.19/']),
+  curPath: '/r/chuyen-tro-linh-tinh.19/',
+  curName: 'Chuyện trò linh tinh',
+  page: 1,
+  total: 1,
+  order: 'last_post_date',
+  prefix: '',
+  hidePin: false,
+  kw: '',
+  threads: [],
+  cache: new Map(),
+};
+
+function renderForumBoxes() {
+  const boxEl = $('#f-boxes');
+  const sorted = [...F.list].sort((a, b) => (F.pins.includes(b.path) ? 1 : 0) - (F.pins.includes(a.path) ? 1 : 0));
+  boxEl.innerHTML = sorted.map((f) => {
+    const isPin = F.pins.includes(f.path);
+    const isOn = F.curPath === f.path;
+    return `<div class="f-box ${isOn ? 'on' : ''}" data-p="${esc(f.path)}" data-n="${esc(f.name)}">
+      <div class="grow clip"><b class="clip">${esc(f.name)}</b><small class="clip">${esc(f.group || 'Diễn đàn')}</small></div>
+      <button class="star-btn ${isPin ? 'on' : ''}" data-star="${esc(f.path)}" title="Ghim box">★</button>
+    </div>`;
+  }).join('');
+}
+
+$('#f-boxes').addEventListener('click', (e) => {
+  const star = e.target.closest('[data-star]');
+  if (star) {
+    e.stopPropagation();
+    const p = star.dataset.star;
+    F.pins = F.pins.includes(p) ? F.pins.filter((x) => x !== p) : [p, ...F.pins];
+    store.set('forums_pins', F.pins);
+    renderForumBoxes();
+    return;
+  }
+  const box = e.target.closest('.f-box');
+  if (box) {
+    F.curPath = box.dataset.p;
+    F.curName = box.dataset.n;
+    F.page = 1;
+    F.prefix = '';
+    $('#f-cur-name').textContent = F.curName;
+    renderForumBoxes();
+    loadForumThreads();
+  }
+});
+
+// Quét tự động danh sách tất cả Forums thực tế từ trang chủ diễn đàn
+$('#f-sync').onclick = async () => {
+  const btn = $('#f-sync'); btn.innerHTML = '<div class="spin d"></div>';
+  try {
+    const r = await fx(cfg.domain + '/');
+    const d = dp(r.html), found = [], seen = new Set();
+    d.querySelectorAll('.node-title a[href]').forEach((a) => {
+      const h = a.getAttribute('href') || '';
+      if (!/\/(r|forums)\//i.test(h)) return;
+      const path = '/' + h.replace(/^https?:\/\/[^/]+\//i, '').replace(/^\/+/, '');
+      const name = a.textContent.replace(/\s+/g, ' ').trim();
+      if (!name || seen.has(path)) return;
+      seen.add(path);
+      const block = a.closest('.block--category');
+      const group = block && block.querySelector('.block-header') ? block.querySelector('.block-header').textContent.replace(/\s+/g, ' ').trim() : 'Chuyên mục';
+      found.push({ path, name, group });
+    });
+    if (found.length) {
+      F.list = found;
+      store.set('forums_list', found);
+      renderForumBoxes();
+      toast(`Đã cập nhật ${found.length} chuyên mục từ diễn đàn`);
+    } else toast('Giữ danh sách chuyên mục mặc định');
+  } catch (e) { toast('Lỗi quét danh mục: ' + e.message); }
+  btn.innerHTML = ic('refresh', 18);
+};
+
+$('#f-custom-acc').onclick = () => { $('#f-custom-acc').classList.toggle('open'); $('#f-custom-box').hidden = !$('#f-custom-box').hidden; };
+$('#f-custom-go').onclick = () => {
+  let raw = $('#f-custom-inp').value.trim();
+  if (!raw) return;
+  raw = raw.replace(/^https?:\/\/[^/]+/i, '');
+  if (!raw.startsWith('/')) raw = '/r/' + raw.replace(/^\/+/, '');
+  if (!raw.endsWith('/')) raw += '/';
+  F.curPath = raw; F.curName = raw.replace(/^\/(r|forums)\/|\//g, ''); F.page = 1; F.prefix = '';
+  $('#f-cur-name').textContent = F.curName;
+  renderForumBoxes(); loadForumThreads();
+};
+
+function buildForumUrl(path, page, order) {
+  let clean = path.replace(/\/+$/, '');
+  const altClean = clean.startsWith('/r/') ? clean.replace(/^\/r\//, '/forums/') : clean.replace(/^\/forums\//, '/r/');
+  const pSeg = page > 1 ? `/page-${page}` : '';
+  const q = order && order !== 'last_post_date' ? `?order=${order}` : '';
+  return [
+    `${cfg.domain}${clean}${pSeg}${q}`,
+    `${cfg.domain}${altClean}${pSeg}${q}`
+  ];
+}
+
+async function fetchForumPageData(path, page, order) {
+  const key = `${cfg.domain}|${path}|${page}|${order}`;
+  if (F.cache.has(key)) return F.cache.get(key);
+  const urls = buildForumUrl(path, page, order);
+  let lastErr;
+  for (const u of urls) {
+    try {
+      const r = await fx(u);
+      const parsed = parseList(r.html, originOf(r.url) || cfg.domain);
+      if (parsed.list.length) {
+        F.cache.set(key, parsed);
+        return parsed;
+      }
+    } catch (e) { lastErr = e; if (e.code === 'CF') throw e; }
+  }
+  throw lastErr || new Error('Không tải được danh sách bài trong chuyên mục này');
+}
+
+async function loadForumThreads() {
+  const el = $('#f-threads');
+  el.innerHTML = spinHTML;
+  $('#f-pnav').hidden = true;
+  try {
+    const data = await fetchForumPageData(F.curPath, F.page, F.order);
+    F.threads = data.list;
+    F.total = data.last || 1;
+    renderForumPrefixes();
+    renderForumThreadList();
+    // Tự động tải trước (Prefetch) trang tiếp theo vào bộ nhớ đệm
+    if (F.page < F.total) {
+      fetchForumPageData(F.curPath, F.page + 1, F.order).catch(() => {});
+    }
+  } catch (e) {
+    el.innerHTML = errHTML(e);
+  }
+}
+
+function renderForumPrefixes() {
+  const pEl = $('#f-prefixes');
+  const prefixes = [...new Set(F.threads.map((t) => t.prefix).filter(Boolean))];
+  if (!prefixes.length) { pEl.innerHTML = ''; return; }
+  pEl.innerHTML = [`<button data-pf="" class="${!F.prefix ? 'on' : ''}">Tất cả thẻ</button>`]
+    .concat(prefixes.map((p) => `<button data-pf="${esc(p)}" class="${F.prefix === p ? 'on' : ''}">${esc(p)}</button>`))
+    .join('');
+}
+
+$('#f-prefixes').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-pf]');
+  if (!b) return;
+  F.prefix = b.dataset.pf;
+  renderForumPrefixes();
+  renderForumThreadList();
+});
+
+function renderForumThreadList() {
+  const el = $('#f-threads');
+  const kw = F.kw.toLowerCase().trim();
+  const filtered = F.threads.filter((t) => {
+    if (F.hidePin && t.isSticky) return false;
+    if (F.prefix && t.prefix !== F.prefix) return false;
+    if (kw && !t.title.toLowerCase().includes(kw) && !(t.meta || '').toLowerCase().includes(kw)) return false;
+    return true;
+  });
+
+  $('#f-page-info').textContent = `Trang ${F.page} / ${F.total}`;
+  $('#f-jump').value = F.page;
+  $('#f-total').textContent = `/ ${F.total}`;
+  $('#f-prev').disabled = F.page <= 1;
+  $('#f-next').disabled = F.page >= F.total;
+  $('#f-pnav').hidden = F.total <= 1 && !filtered.length;
+
+  el.innerHTML = filtered.length
+    ? filtered.map(rowHTML).join('')
+    : '<p class="muted" style="text-align:center;padding:20px">Không có bài viết nào khớp bộ lọc trên trang này.</p>';
+}
+
+seg($('#f-sort'), (v) => { F.order = v; F.page = 1; loadForumThreads(); });
+$('#f-filter').addEventListener('input', (e) => { F.kw = e.target.value; renderForumThreadList(); });
+$('#f-hide-pin').onclick = () => {
+  F.hidePin = !F.hidePin;
+  $('#f-hide-pin').style.background = F.hidePin ? 'var(--brand)' : '';
+  $('#f-hide-pin').style.color = F.hidePin ? '#fff' : '';
+  renderForumThreadList();
+};
+$('#f-prev').onclick = () => { if (F.page > 1) { F.page--; loadForumThreads(); scrollTo(0, $('#f-ctrl').offsetTop - 12); } };
+$('#f-next').onclick = () => { if (F.page < F.total) { F.page++; loadForumThreads(); scrollTo(0, $('#f-ctrl').offsetTop - 12); } };
+$('#f-jump').onchange = (e) => {
+  const p = clamp(+e.target.value || 1, 1, F.total);
+  F.page = p; loadForumThreads(); scrollTo(0, $('#f-ctrl').offsetTop - 12);
+};
+bindRows($('#f-threads'));
+
 const recent = () => store.get('recent', []), saved = () => store.get('saved', []);
 function addRecent(url, title) { store.set('recent', [{ url, title: title || url }, ...recent().filter((x) => x.url !== url)].slice(0, 30)); }
 function catPanel(c) {
+  $$('.cats .card').forEach((b) => b.classList.toggle('active-cat', b.dataset.c === c));
+  $('#p-forums').hidden = c !== 'forums';
   $('#p-link').hidden = c !== 'link';
   const list = $('#cat-list'); list.innerHTML = '';
-  if (c === 'recent' || c === 'saved') { const a = c === 'recent' ? recent() : saved(); list.innerHTML = a.length ? a.map(rowHTML).join('') : '<p class="muted" style="text-align:center;padding:16px">Chưa có mục nào.</p>'; }
+  if (c === 'recent' || c === 'saved') {
+    const a = c === 'recent' ? recent() : saved();
+    list.innerHTML = a.length ? a.map(rowHTML).join('') : '<p class="muted" style="text-align:center;padding:16px">Chưa có mục nào.</p>';
+  }
   if (c === 'link') $('#link').focus();
 }
 $('.cats').addEventListener('click', (e) => { const b = e.target.closest('[data-c]'); if (!b) return; const c = b.dataset.c; if (c === 'kw' || c === 'au' || c === 'post') goSearch(c); else catPanel(c); });
 bindRows($('#cat-list'));
-const scanLink = () => { const s = $('#link').value.trim(); if (!s) return; openGallery(/^https?:\/\//i.test(s) ? s : cfg.domain + '/' + s.replace(/^\//, '')); };
-$('#scan').onclick = scanLink; $('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') scanLink(); });
+
+const resolveLinkInp = () => { const s = $('#link').value.trim(); if (!s) return null; return /^https?:\/\//i.test(s) ? s : cfg.domain + '/' + s.replace(/^\//, ''); };
+$('#scan').onclick = () => { const u = resolveLinkInp(); if (u) openGallery(u); };
+$('#read-link').onclick = () => { const u = resolveLinkInp(); if (u) openReader(u, '', 1); };
+$('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const u = resolveLinkInp(); if (u) openReader(u, '', 1); } });
 $('#paste').onclick = async () => { try { $('#link').value = await navigator.clipboard.readText(); } catch { toast('Không đọc được clipboard, hãy dán thủ công'); } };
 
-/* ───────── Thư viện ảnh/video ───────── */
+/* ───────── TRÌNH ĐỌC BÀI VIẾT CHI TIẾT (THREAD READER) ───────── */
+let R = null, rTok = 0;
+const rdr = $('#rdr'), rList = $('#r-list');
+const isSaved = (u) => saved().some((x) => x.url === u);
+const syncReaderSave = () => $('#r-save').classList.toggle('on', !!R && isSaved(normThread(R.url)));
+
+seg($('#r-seg'), (v) => { if (R) { R.filter = v; renderReaderPosts(); } });
+
+function openReader(url, title = '', page = 1) {
+  rTok++; const tok = rTok;
+  const root = normThread(rebase(url)).replace(/\/+$/, '');
+  R = { url: root, title: title || 'Đang tải…', page, total: 1, opAuthor: '', filter: 'all', posts: [], cache: new Map() };
+  $('#r-title').textContent = R.title;
+  $('#r-sub').textContent = `Trang ${page}`;
+  setSeg($('#r-seg'), 'all');
+  rdr.hidden = false; document.body.style.overflow = 'hidden';
+  pushOv(() => { rTok++; rdr.hidden = true; document.body.style.overflow = ''; R = null; });
+  addRecent(root, title); syncReaderSave();
+  loadReaderPage(tok, page);
+}
+
+async function fetchReaderPageData(root, page) {
+  if (R && R.cache.has(page)) return R.cache.get(page);
+  const target = page > 1 ? `${root}/page-${page}` : root;
+  const res = await fx(target);
+  const parsed = parseThreadPosts(res.html, originOf(res.url) || cfg.domain);
+  if (R) R.cache.set(page, parsed);
+  return parsed;
+}
+
+async function loadReaderPage(tok, page) {
+  if (!R || tok !== rTok) return;
+  R.page = page;
+  rList.innerHTML = spinHTML;
+  $('#r-pnav').hidden = true;
+  $('#r-scroll').scrollTo(0, 0);
+  try {
+    const d = await fetchReaderPageData(R.url, page);
+    if (!R || tok !== rTok) return;
+    if (d.title) { R.title = d.title; $('#r-title').textContent = d.title; addRecent(R.url, d.title); }
+    if (d.opAuthor && !R.opAuthor) R.opAuthor = d.opAuthor;
+    R.total = d.last || 1;
+    R.posts = d.posts;
+    saveProg(R.url, R.page, R.total);
+    renderReaderPosts();
+    if (R.page < R.total) fetchReaderPageData(R.url, R.page + 1).catch(() => {});
+  } catch (e) {
+    if (!R || tok !== rTok) return;
+    rList.innerHTML = errHTML(e);
+  }
+}
+
+function renderReaderPosts() {
+  if (!R) return;
+  const list = R.posts.filter((p) => {
+    if (R.filter === 'op') return p.isOp || (R.opAuthor && p.author.toLowerCase() === R.opAuthor.toLowerCase());
+    if (R.filter === 'media') return p.hasMedia;
+    return true;
+  });
+  $('#r-sub').textContent = `Trang ${R.page}/${R.total} · Chủ thớt: ${R.opAuthor || 'Ẩn danh'}`;
+  $('#r-jump').value = R.page;
+  $('#r-total').textContent = `/ ${R.total}`;
+  $('#r-prev').disabled = R.page <= 1;
+  $('#r-next').disabled = R.page >= R.total;
+  $('#r-pnav').hidden = R.total <= 1;
+
+  if (!list.length) {
+    rList.innerHTML = '<p class="muted" style="text-align:center;padding:32px">Không có bình luận nào khớp bộ lọc trên trang này.</p>';
+    return;
+  }
+  rList.innerHTML = list.map((p) => `
+    <article class="post-card ${p.isOp ? 'is-op' : ''}">
+      <div class="post-head">
+        <div class="post-au">
+          <span>${esc(p.author)}</span>
+          ${p.isOp ? '<span class="badge">Chủ thớt</span>' : ''}
+        </div>
+        <small class="muted">${esc(p.time)} · ${esc(p.num)}</small>
+      </div>
+      <div class="post-body">${p.html}</div>
+    </article>
+  `).join('');
+}
+
+rList.addEventListener('click', (e) => {
+  const img = e.target.closest('.post-body img');
+  if (img && img.dataset.raw) {
+    const allImgs = [...rList.querySelectorAll('.post-body img[data-raw]')].map((x) => ({ type: 'image', url: x.dataset.raw }));
+    const idx = allImgs.findIndex((x) => x.url === img.dataset.raw);
+    openLB(allImgs, Math.max(0, idx));
+  }
+});
+
+$('#r-back').onclick = uiBack;
+$('#r-gal').onclick = () => { if (R) openGallery(R.url, R.title); };
+$('#r-save').onclick = () => {
+  if (!R) return; const u = normThread(R.url), a = saved();
+  if (isSaved(u)) store.set('saved', a.filter((x) => x.url !== u)); else store.set('saved', [{ url: u, title: R.title || u }, ...a]);
+  syncReaderSave(); toast(isSaved(u) ? 'Đã lưu chủ đề' : 'Đã bỏ lưu');
+};
+$('#r-prev').onclick = () => { if (R && R.page > 1) loadReaderPage(rTok, R.page - 1); };
+$('#r-next').onclick = () => { if (R && R.page < R.total) loadReaderPage(rTok, R.page + 1); };
+$('#r-jump').onchange = (e) => { if (R) loadReaderPage(rTok, clamp(+e.target.value || 1, 1, R.total)); };
+
+/* ───────── Thư viện ảnh/video (Gallery) ───────── */
 let gTok = 0, G = null, gTimer = null;
 const gal = $('#gal'), grid = $('#g-grid'), gmsg = $('#g-msg');
 seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
-const isSaved = (u) => saved().some((x) => x.url === u);
 const syncSave = () => $('#g-save').classList.toggle('on', !!G && isSaved(normThread(G.url)));
 
 function openGallery(url, title) {
@@ -565,6 +1122,7 @@ function update(full) {
 }
 gmsg.addEventListener('click', (e) => { const a = e.target.closest('[data-act="retry"]'); if (a) { e.preventDefault(); gTok++; const tok = gTok; G.items = []; G.rendered = 0; grid.innerHTML = ''; run(tok); } });
 $('#g-back').onclick = uiBack;
+$('#g-read').onclick = () => { if (G) openReader(G.url, G.title, 1); };
 $('#g-save').onclick = () => {
   if (!G) return; const u = normThread(G.url), a = saved();
   if (isSaved(u)) store.set('saved', a.filter((x) => x.url !== u)); else store.set('saved', [{ url: u, title: G.title || u }, ...a]);
@@ -652,7 +1210,7 @@ function loadSettings() {
   $('#dom-note').textContent = cfg.manual ? 'Đang dùng domain bạn nhập tay (không tự cập nhật).' : 'Domain tự cập nhật từ file cấu hình mỗi lần mở app.';
   document.documentElement.style.setProperty('--cols', cfg.cols);
 }
-$('#dom-save').onclick = () => { const d = normDomain($('#set-domain').value); if (!d) return toast('Domain không hợp lệ'); set('domain', d); set('manual', true); loadSettings(); toast('Đã lưu domain'); checkConn(); };
+$('#dom-save').onclick = () => { const d = normDomain($('#set-domain').value); if (!d) return toast('Domain không hợp lệ'); set('domain', d); set('manual', true); F.cache.clear(); loadSettings(); toast('Đã lưu domain'); checkConn(); };
 $('#set-remote').onchange = (e) => set('remote', e.target.value.trim());
 async function refreshRemote(force) {
   if (!cfg.remote || (cfg.manual && !force)) return null;
@@ -675,11 +1233,11 @@ $('#test').onclick = async () => {
   try { await fx(cfg.domain + '/'); out.textContent = `✔ Kết nối ${hostOf(cfg.domain)} thành công (${Math.round(performance.now() - t0)} ms).`; } catch (e) { out.textContent = '✖ ' + e.message; }
   checkConn();
 };
-$('#clr-hist').onclick = () => { ['hist', 'recent'].forEach((k) => store.set(k, [])); renderHist(); toast('Đã xóa lịch sử'); };
+$('#clr-hist').onclick = () => { ['hist', 'recent', 'progress'].forEach((k) => store.set(k, k === 'progress' ? {} : [])); renderHist(); toast('Đã xóa lịch sử & tiến độ đọc'); };
 $('#clr-jar').onclick = () => { jar = {}; store.set('jar', jar); toast('Đã xóa cookie phiên'); };
 
 /* ───────── Khởi động ───────── */
-loadSettings(); renderHist();
+loadSettings(); renderHist(); renderForumBoxes();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 (async () => {
   try { await refreshRemote(false); loadSettings(); } catch {}
