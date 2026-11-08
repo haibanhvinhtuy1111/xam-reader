@@ -2,7 +2,6 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<!-- Khóa zoom để iPhone không bị nhảy layout khi gõ phím -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F8F9F5">
@@ -17,11 +16,10 @@
 <style>
 :root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
-/* Tăng khoảng không dưới đáy để không bị thanh Tab Bar đè lên nội dung */
 --barb:calc(var(--sab) + 72px); 
 --shadow:0 4px 12px rgba(11,31,20,.05)}
 
-/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) --- */
+/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) & SỬA LỖI TRÀN NGANG --- */
 @media (max-width: 768px) {
   :root { --cols: 2; }
   .col-pills { display: none !important; }
@@ -44,23 +42,13 @@
   .g-scroll { padding: 8px 12px calc(var(--sab) + 40px) !important; }
 
   .rbtn { width: 40px !important; height: 40px !important; }
-  
-  /* Cứu cánh cho lỗi nút quá dài ép tràn màn hình trên iPhone */
-  .seg button { 
-    padding: 8px 2px !important; 
-    font-size: 12.5px !important; 
-    white-space: normal !important; /* Bắt buộc bẻ dòng nếu nút quá dài */
-    line-height: 1.2;
-  }
+  .seg button { padding: 8px 4px !important; font-size: 13.5px !important; }
   .chips button { padding: 5px 10px !important; font-size: 12.5px !important; }
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none;
-  /* Khóa cứng kích thước trang để không bao giờ vượt qua 100% */
-  width: 100%; max-width: 100%; overflow-x: hidden; position: relative;
-}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer;padding:0}
 input,textarea,select{font-size:16px}
@@ -118,6 +106,7 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .cats .card.active-cat{outline:2px solid var(--brand)}
 .cats .ibox{width:42px;height:42px}
 
+/* Forum Explorer */
 .f-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .f-box{background:var(--input);border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
 .f-box.on{background:var(--soft);border-color:var(--brand)}
@@ -130,29 +119,29 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .pnav button:disabled{opacity:.4}
 .pnav input{width:64px;height:40px;margin:0;text-align:center;border-radius:12px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:14px;padding:0 6px}
 
-/* --- CHỐNG TRÀN CHỮ BỊ CẮT LẸM DÀNH CHO POST READER --- */
+/* --- CHỐNG TRÀN DÀNH CHO POST READER --- */
 .post-card {
   background:#fff;
   border-radius:20px;
   padding:16px;
   box-shadow:var(--shadow);
   margin-bottom:12px;
-  min-width: 0;          /* Khóa cứng lỗi phình bề ngang của Safari */
-  max-width: 100%;       /* Chặn thẻ phình to hơn màn hình */
+  min-width: 0;          
+  max-width: 100%;       
   overflow-x: hidden;    
 }
 .post-card.is-op{border-left:4px solid var(--brand)}
 .post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px; min-width:0;} /* Chống tràn tên dài */
+.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px; min-width:0;} 
 
 .post-body {
   font-size:15px;
   line-height:1.55;
   color:var(--ink);
-  overflow-wrap: anywhere;  /* Bắt buộc bẻ gãy mọi từ quá dài để chống tràn */
+  overflow-wrap: anywhere;  
   word-break: break-word; 
 }
-.post-body * { max-width: 100%; } /* Ép mọi bảng, code block nằm gọn trong khung */
+.post-body * { max-width: 100%; }
 .post-body img, .post-body video, .post-body iframe { height: auto; border-radius: 8px; }
 .post-body blockquote{margin:8px 0;padding:10px 14px;background:var(--input);border-left:3px solid var(--brand);border-radius:12px;font-size:13.5px;color:var(--muted)}
 .post-body a{color:var(--brand);text-decoration:underline}
@@ -175,12 +164,11 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
 
-/* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH ───────── */
+/* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH & LƯỚI THẺ ───────── */
 .ov{
   position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;
   width:100%; max-width:100vw; overflow:hidden;
 }
-/* QUAN TRỌNG NHẤT: Khóa cứng thuộc tính Flexbox để không bao giờ bị lệnh Margin Auto sang trái */
 .ov > * { min-width: 0; }
 
 .ov.dark{background:#000;z-index:40;color:#fff}
@@ -194,13 +182,13 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .g-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden; /* Cấm kéo ngang */
+  overflow-x: hidden; 
   -webkit-overflow-scrolling: touch;
   padding: 8px 16px calc(var(--sab) + 40px);
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
-  min-width: 0; /* Khóa lỗi Safari trượt trái */
+  min-width: 0; 
 }
 
 .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
@@ -768,18 +756,46 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   return { failed: bad.length - recovered, recovered };
 }
 
+/* ───────── Tìm kiếm qua DuckDuckGo HTML ẩn danh (Vượt Cloudflare) ───────── */
 async function searchForum({ q, by, exact, order }) {
-  const form = await fx(cfg.domain + '/search/');
-  const d = dp(form.html);
-  const token = (d.documentElement.dataset.csrf) || ((d.querySelector('input[name=_xfToken]') || {}).value);
-  if (!token) throw new Error('Không lấy được mã CSRF của diễn đàn');
-  const kw = q.trim(), p = { _xfToken: token, order, search_type: 'post' };
-  if (by === 'author') p['c[users]'] = kw; else p.keywords = exact ? `"${kw}"` : kw;
-  if (by === 'thread') p['c[title_only]'] = '1';
-  if (by !== 'post') p.grouped = '1';
-  const res = await fx(cfg.domain + '/search/search', { method: 'POST', contentType: 'application/x-www-form-urlencoded', body: Object.entries(p).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&') });
-  const { list } = parseList(res.html, originOf(res.url) || cfg.domain);
-  if (!list.length) throw new Error(blockMsg(res.html) || 'Không có kết quả phù hợp');
+  let keyword = q.trim();
+  if (exact) keyword = `"${keyword}"`;
+  let domainDork = cfg.domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  let searchQuery = `${keyword} site:${domainDork}`;
+  if (by === 'author') searchQuery = `"${keyword}" member site:${domainDork}`;
+
+  const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(searchQuery)}`;
+  
+  const r = await fx(ddgUrl, { method: 'GET' });
+  const d = dp(r.html);
+  const list = [];
+  
+  d.querySelectorAll('.result').forEach((res) => {
+    const a = res.querySelector('.result__title a');
+    if (!a) return;
+    
+    let rawUrl = a.getAttribute('href') || '';
+    const match = rawUrl.match(/uddg=([^&]+)/);
+    if (match) rawUrl = decodeURIComponent(match[1]);
+    
+    if (!/\/(threads|t)\//.test(rawUrl)) return;
+    
+    const title = a.textContent.trim();
+    const snippetEl = res.querySelector('.result__snippet');
+    const snippet = snippetEl ? snippetEl.textContent.trim() : '';
+    
+    list.push({
+      url: normThread(rawUrl),
+      title: title,
+      prefix: 'Kết quả',
+      isSticky: false,
+      author: 'Tìm kiếm',
+      snippet: snippet,
+      meta: 'Nguồn: Công cụ tìm kiếm ngoài'
+    });
+  });
+
+  if (!list.length) throw new Error('Không tìm thấy bài viết nào khớp với từ khóa.');
   return list;
 }
 
@@ -1123,8 +1139,6 @@ $('#read-link').onclick = () => { const u = resolveLinkInp(); if (u) openReader(
 $('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const u = resolveLinkInp(); if (u) openGallery(u); } });
 $('#paste').onclick = async () => { try { $('#link').value = await navigator.clipboard.readText(); } catch { toast('Không đọc được clipboard, hãy dán thủ công'); } };
 
-
-/* ───────── TRÌNH ĐỌC BÀI VIẾT ───────── */
 let R = null, rTok = 0;
 const rdr = $('#rdr'), rList = $('#r-list');
 const isSaved = (u) => saved().some((x) => x.url === u);
@@ -1259,8 +1273,6 @@ $('#r-prev').onclick = () => { if (R && R.page > 1) loadReaderPage(rTok, R.page 
 $('#r-next').onclick = () => { if (R && R.page < R.total) loadReaderPage(rTok, R.page + 1); };
 $('#r-jump').onchange = (e) => { if (R) loadReaderPage(rTok, clamp(+e.target.value || 1, 1, R.total)); };
 
-
-/* ───────── THƯ VIỆN LƯỚI THẺ (GALLERY RỘNG) ───────── */
 let gTok = 0, G = null, gTimer = null;
 const gal = $('#gal'), grid = $('#g-grid'), gmsg = $('#g-msg');
 seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
@@ -1384,7 +1396,6 @@ grid.addEventListener('click', (e) => {
   const imgs = G.view.filter((x) => x.type === 'image'); openLB(imgs, imgs.indexOf(it));
 });
 
-/* ───────── Lightbox ───────── */
 const lb = $('#lb'), lbImg = $('#lb-img'), stage = $('#lb-stage');
 const L = { list: [], i: 0, s: 1, x: 0, y: 0 };
 const applyT = (anim) => { lbImg.style.transition = anim ? 'transform .2s' : 'none'; lbImg.style.transform = `translate(${L.x}px,${L.y}px) scale(${L.s})`; };
@@ -1483,7 +1494,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 (async () => {
   try { await refreshRemote(false); loadSettings(); } catch {}
   checkConn();
-  const u = new URLSearchParams(location.search).get('u');
+  const u = newSearchParams(location.search).get('u');
   if (u) { history.replaceState(null, '', location.pathname); openGallery(u); }
 })();
 })();
