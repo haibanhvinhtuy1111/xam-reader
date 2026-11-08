@@ -744,24 +744,36 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
 }
 
 /* ───────── TÌM KIẾM ĐA NGUỒN (KHÔNG BỊ LỖI 403) ───────── */
+/* ───────── TÌM KIẾM ĐA NGUỒN (ĐÃ FIX XF TOKEN & MULTI-DOMAIN DORK) ───────── */
 async function searchForum({ q, by, exact, order }) {
   const kw = q.trim();
-  const queryTerm = exact ? `"${kw}"` : kw;
-  const domainHost = hostOf(cfg.domain);
-  const dork = by === 'author' ? `${queryTerm} site:${domainHost}` : `${queryTerm} site:${domainHost}/threads/`;
+  const queryTerm = exact ? "${kw}" : kw;
   const seen = new Set(), out = [];
 
+  // Chuẩn hóa và gom kết quả từ mọi nguồn (tự động đổi domain cũ sang domain hiện tại)
   const pushItem = (rawUrl, title, snippet = '', meta = '') => {
     if (!rawUrl || !title) return;
-    let u = rawUrl;
-    const mRU = u.match(/\/RU=([^/]+)\/RK=/i) || u.match(/[?&](?:uddg|u|url|q)=([^&]+)/i);
+    let u = rawUrl.trim();
+
+    // 1. Giải mã link redirect của Yahoo / DuckDuckGo
+    const mRU = u.match(/\/RU=([^/]+)\/RK=/i) || u.match(/[?&](?:uddg|url|q)=([^&]+)/i);
     if (mRU) { try { u = decodeURIComponent(mRU[1]); } catch {} }
+
+    // 2. Giải mã link Base64 của Bing (u=a1aHR0cHM...)
+    const mBing = u.match(/[?&]u=a1([^&]+)/i);
+    if (mBing) {
+      try { u = atob(mBing[1].replace(/-/g, '+').replace(/_/g, '/')); } catch {}
+    }
+
     if (!/^https?:\/\//i.test(u)) u = abs(u, cfg.domain) || '';
     if (!/\/(threads|posts)\//i.test(u)) return;
+
+    // Chuyển mọi tên miền xamvn cũ về cfg.domain hiện tại
     const cleanUrl = normThread(rebase(u));
     const cleanTitle = title.replace(/\s*\|\s*(?:Page\s*\d+\s*\|\s*)?Xamvn.*$/i, '').replace(/\s+/g, ' ').trim();
     if (!cleanTitle || seen.has(cleanUrl)) return;
     seen.add(cleanUrl);
+
     out.push({
       url: cleanUrl,
       title: cleanTitle,
@@ -773,9 +785,61 @@ async function searchForum({ q, by, exact, order }) {
     });
   };
 
-  // Nguồn 1: Yahoo Search HTML
+  // NGUỒN 1: Tìm kiếm trực tiếp trên XenForo (Lấy _xfToken + POST chuẩn)
   try {
-    const yUrl = `https://search.yahoo.com/search?p=${encodeURIComponent(dork)}&n=30`;
+    const initRes = await fx(cfg.domain + '/search/');
+    const initDoc = dp(initRes.html);
+    const xfToken = initDoc.querySelector('input[name="_xfToken"]')?.value || '';
+
+    if (xfToken) {
+      const params = new URLSearchParams();
+      params.set('keywords', queryTerm);
+      if (by === 'thread') params.set('c[title_only]', '1');
+      if (by === 'author') {
+        params.set('c[users]', kw);
+        params.delete('keywords'); // Nếu chỉ tìm theo tên tác giả
+      }
+      params.set('order', order || 'relevance');
+      params.set('_xfToken', xfToken);
+
+      const searchRes = await fx(cfg.domain + '/search/search', {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: params.toString(),
+      });
+      const { list } = parseList(searchRes.html, originOf(searchRes.url) || cfg.domain);
+      list.forEach((item) => {
+        if (!seen.has(item.url)) {
+          seen.add(item.url);
+          out.push(item);
+        }
+      });
+      if (out.length) return out;
+    }
+  } catch (e) {
+    console.warn('XF Native Search bỏ qua:', e.message);
+  }
+
+  // Câu lệnh Dork mở rộng: Quét tất cả các tên miền xamvn từng được index thay vì chỉ xamvn.work
+  const dork = ${queryTerm} (site:${hostOf(cfg.domain)} OR site:xamvn.com OR site:xamvn.id OR site:xamvn.vc OR inurl:threads);
+
+  // NGUỒN 2: DuckDuckGo HTML (Ít chặn IP Vercel hơn Yahoo/Bing)
+  try {
+    const ddgUrl = https://html.duckduckgo.com/html/?q=${encodeURIComponent(dork + ' xamvn')};
+    const r = await fx(ddgUrl);
+    const d = dp(r.html);
+    d.querySelectorAll('.result, .web-result').forEach((node) => {
+      const a = node.querySelector('a.result__a, h2 a[href]');
+      if (!a) return;
+      const sn = node.querySelector('.result__snippet');
+      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Kho lưu trữ');
+    });
+    if (out.length) return out;
+  } catch {}
+
+  // NGUỒN 3: Yahoo Search HTML (Với Dork đa tên miền)
+  try {
+    const yUrl = https://search.yahoo.com/search?p=${encodeURIComponent(dork + ' xamvn')}&n=30;
     const r = await fx(yUrl);
     const d = dp(r.html);
     d.querySelectorAll('div.algo, div.Sr, li .compTitle').forEach((node) => {
@@ -783,45 +847,48 @@ async function searchForum({ q, by, exact, order }) {
       const a = box.querySelector('h3 a[href], a.ac-algo[href], a[href*="threads"]');
       if (!a) return;
       const sn = box.querySelector('.compText, .fc-falcon, p');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Tìm toàn diễn đàn');
+      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Yahoo Search');
     });
     if (out.length) return out;
   } catch {}
 
-  // Nguồn 2: Bing Search HTML
+  // NGUỒN 4: Bing Search HTML (Đã hỗ trợ giải mã Base64 link)
   try {
-    const bUrl = `https://www.bing.com/search?q=${encodeURIComponent(dork)}&count=30`;
+    const bUrl = https://www.bing.com/search?q=${encodeURIComponent(dork + ' xamvn')}&count=30;
     const r = await fx(bUrl);
     const d = dp(r.html);
     d.querySelectorAll('li.b_algo').forEach((li) => {
       const a = li.querySelector('h2 a[href]');
       if (!a) return;
       const sn = li.querySelector('.b_caption p, .b_algoSlug');
-      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Tìm toàn diễn đàn');
+      pushItem(a.getAttribute('href'), a.textContent, sn ? sn.textContent : '', 'Bing Search');
     });
     if (out.length) return out;
   } catch {}
 
-  // Nguồn 3: XenForo GET Search
+  // NGUỒN 5: Quét nhanh 3 trang đầu của box "Chuyện trò linh tinh" & "Mới nhất" (Bỏ dấu tiếng Việt để so khớp)
   try {
-    const xfUrl = `${cfg.domain}/search/search?keywords=${encodeURIComponent(kw)}${by === 'thread' ? '&c[title_only]=1' : ''}${by === 'author' ? '&c[users]=' + encodeURIComponent(kw) : ''}&order=${encodeURIComponent(order || 'relevance')}`;
-    const r = await fx(xfUrl);
-    const { list } = parseList(r.html, originOf(r.url) || cfg.domain);
-    if (list.length) return list;
-  } catch {}
-
-  // Nguồn 4: Lọc nhanh trên luồng bài mới
-  try {
-    const r = await fx(cfg.domain + '/whats-new/posts/');
-    const { list } = parseList(r.html, originOf(r.url) || cfg.domain);
-    const kLow = kw.toLowerCase();
-    const matched = list.filter((x) => x.title.toLowerCase().includes(kLow) || (x.meta || '').toLowerCase().includes(kLow));
-    if (matched.length) return matched;
+    const rmTone = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const kNorm = rmTone(kw);
+    const pages = await Promise.allSettled([
+      fx(cfg.domain + '/whats-new/posts/'),
+      fx(cfg.domain + '/r/chuyen-tro-linh-tinh.19/'),
+      fx(cfg.domain + '/r/chuyen-tro-linh-tinh.19/page-2')
+    ]);
+    for (const p of pages) {
+      if (p.status !== 'fulfilled') continue;
+      const { list } = parseList(p.value.html, originOf(p.value.url) || cfg.domain);
+      list.forEach((x) => {
+        if (rmTone(x.title).includes(kNorm) || rmTone(x.meta || '').includes(kNorm)) {
+          if (!seen.has(x.url)) { seen.add(x.url); out.push(x); }
+        }
+      });
+    }
+    if (out.length) return out;
   } catch {}
 
   throw new Error('Không tìm thấy bài viết nào khớp với "' + kw + '".');
 }
-
 let latestPath = '/whats-new/posts/';
 async function fetchLatest(customPath) {
   let lastErr;
