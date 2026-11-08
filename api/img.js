@@ -1,50 +1,41 @@
-const dns = require('dns').promises;
-const net = require('net');
-const crypto = require('crypto');
+const { Readable } = require('stream');
+const { UA, assertPublic, authorized } = require('./_lib');
 
-const UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+/** GET /api/img?url=...&ref=https://domain/&k=KEY — tải ảnh/video kèm Referer của diễn đàn (qua mặt chống hotlink), có hỗ trợ Range. */
+module.exports = async (req, res) => {
+  const { url, ref, k } = req.query || {};
+  if (!authorized(k)) return res.status(401).end('Sai khóa truy cập');
+  try {
+    let cur = String(url || '');
+    let r;
+    for (let hop = 0; hop < 5; hop++) {
+      const u = await assertPublic(cur);
+      const headers = {
+        'user-agent': UA,
+        accept: 'image/avif,image/webp,image/*,video/*,*/*;q=0.8',
+        referer: String(ref || u.origin + '/'),
+      };
+      if (req.headers.range) headers.range = req.headers.range;
+      r = await fetch(u, { headers, redirect: 'manual', signal: AbortSignal.timeout(25000) });
+      const loc = r.headers.get('location');
+      if (loc && r.status >= 300 && r.status < 400) { try { await r.body?.cancel(); } catch {} cur = new URL(loc, u).href; r = null; continue; }
+      break;
+    }
+    if (!r) throw new Error('Quá nhiều lần chuyển hướng');
 
-/** Chặn địa chỉ nội bộ (SSRF): localhost, mạng LAN, metadata cloud... */
-function isPrivateIp(ip) {
-  if (net.isIPv4(ip)) {
-    const [a, b] = ip.split('.').map(Number);
-    return (
-      a === 0 || a === 10 || a === 127 || a >= 224 ||
-      (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127)
-    );
+    const ct = r.headers.get('content-type') || '';
+    if (!/^(image|video)\//i.test(ct) && !/octet-stream/i.test(ct)) { try { await r.body?.cancel(); } catch {} return res.status(415).end('Không phải ảnh/video'); }
+
+    res.status(r.status);
+    const pass = ['content-type', 'content-range', 'accept-ranges', 'last-modified', 'etag'];
+    if (!r.headers.get('content-encoding')) pass.push('content-length');
+    pass.forEach((h) => { const v = r.headers.get(h); if (v) res.setHeader(h, v); });
+    res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox"); // chặn SVG chạy script
+    if (!r.body) return res.end();
+    Readable.fromWeb(r.body).on('error', () => res.end()).pipe(res);
+  } catch (e) {
+    res.status(502).end(String((e && e.message) || e));
   }
-  const v = String(ip).toLowerCase();
-  if (v.startsWith('::ffff:')) {
-    const rest = v.slice(7);
-    return net.isIPv4(rest) ? isPrivateIp(rest) : true;
-  }
-  return v === '::1' || v === '::' || /^f[cd]/.test(v) || /^fe[89ab]/.test(v);
-}
-
-/** Chỉ cho phép http/https cổng 80/443, tên miền phân giải ra IP công cộng (và nằm trong ALLOWED_HOSTS nếu có đặt). */
-async function assertPublic(urlStr) {
-  let u;
-  try { u = new URL(urlStr); } catch { throw new Error('URL không hợp lệ'); }
-  if (!/^https?:$/.test(u.protocol)) throw new Error('Chỉ hỗ trợ http/https');
-  if (u.port && u.port !== '80' && u.port !== '443') throw new Error('Cổng không được phép');
-  const allow = (process.env.ALLOWED_HOSTS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (allow.length && !allow.some((h) => u.hostname === h || u.hostname.endsWith('.' + h))) {
-    throw new Error('Tên miền không nằm trong ALLOWED_HOSTS');
-  }
-  const ips = net.isIP(u.hostname) ? [{ address: u.hostname }] : await dns.lookup(u.hostname, { all: true });
-  if (!ips.length || ips.some((x) => isPrivateIp(x.address))) throw new Error('Địa chỉ nội bộ bị chặn');
-  return u;
-}
-
-/** Nếu có đặt biến môi trường ACCESS_KEY thì bắt buộc client gửi đúng khóa. */
-function authorized(provided) {
-  const k = process.env.ACCESS_KEY;
-  if (!k) return true;
-  const a = Buffer.from(String(provided || ''));
-  const b = Buffer.from(k);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-module.exports = { UA, isPrivateIp, assertPublic, authorized };
+};

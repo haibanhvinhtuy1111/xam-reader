@@ -1,52 +1,68 @@
-// api/proxy.js
-import { getTargetDomain, getBrowserHeaders } from './_lib.js';
+const { UA, assertPublic, authorized } = require('./_lib');
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-target-domain');
+const parseCk = (s) =>
+  Object.fromEntries(
+    String(s || '').split(';').map((x) => x.trim()).filter(Boolean)
+      .map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }),
+  );
+const serCk = (o) => Object.entries(o).map(([k, v]) => `${k}=${v}`).join('; ');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+/**
+ * POST /api/proxy  { url, method?, body?, contentType?, cookie?, ua? }
+ * -> { status, url (sau redirect), html, cookies (cookie mới server set) }
+ * Tự theo redirect thủ công (kiểm tra SSRF ở từng bước) và giữ cookie giữa các bước,
+ * để luồng tìm kiếm XenForo (GET /search/ -> POST -> 303) chạy đúng.
+ */
+module.exports = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Chỉ nhận POST' });
+  if (!authorized(req.headers['x-key'])) return res.status(401).json({ error: 'Sai hoặc thiếu khóa truy cập (ACCESS_KEY)' });
 
   try {
-    const baseUrl = getTargetDomain(req);
-    const rawPath = req.query.path || req.query.url || '/';
-    
-    // Chuẩn hóa đường dẫn để hỗ trợ cả path tương đối (/f/..., /t/...) và full URL
-    let targetUrl;
-    if (rawPath.startsWith('http')) {
-      const parsed = new URL(rawPath);
-      targetUrl = `${baseUrl}${parsed.pathname}${parsed.search}`;
-    } else {
-      const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
-      targetUrl = `${baseUrl}${cleanPath}`;
+    const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+    let method = String(b.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'POST') throw new Error('Method không hợp lệ');
+    let body = method === 'POST' ? String(b.body ?? '') : undefined;
+    const jar = parseCk(b.cookie);
+    const fresh = {};
+    let cur = String(b.url || '');
+
+    for (let hop = 0; hop < 6; hop++) {
+      const u = await assertPublic(cur);
+      const headers = {
+        'user-agent': String(b.ua || UA),
+        accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+        'accept-language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        referer: u.origin + '/',
+      };
+      if (Object.keys(jar).length) headers.cookie = serCk(jar);
+      if (body !== undefined) {
+        headers['content-type'] = String(b.contentType || 'application/x-www-form-urlencoded');
+        headers.origin = u.origin;
+      }
+
+      const r = await fetch(u, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(20000) });
+
+      for (const sc of r.headers.getSetCookie ? r.headers.getSetCookie() : []) {
+        const pair = sc.split(';')[0];
+        const i = pair.indexOf('=');
+        if (i > 0) { const n = pair.slice(0, i).trim(); const v = pair.slice(i + 1).trim(); jar[n] = v; fresh[n] = v; }
+      }
+
+      const loc = r.headers.get('location');
+      if (loc && r.status >= 300 && r.status < 400) {
+        try { await r.body?.cancel(); } catch {}
+        cur = new URL(loc, u).href;
+        if (r.status !== 307 && r.status !== 308) { method = 'GET'; body = undefined; }
+        continue;
+      }
+
+      const html = await r.text();
+      if (html.length > 4_000_000) throw new Error('Trang quá lớn (>4MB), Vercel không trả về được');
+      return res.status(200).json({ status: r.status, url: u.href, html, cookies: fresh });
     }
-
-    const response = await fetch(targetUrl, {
-      method: 'GET',
-      headers: getBrowserHeaders(baseUrl),
-      redirect: 'follow',
-    });
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: `Upstream trả về mã lỗi ${response.status}`,
-        targetUrl,
-      });
-    }
-
-    let html = await response.text();
-
-    // Tối ưu dung lượng: loại bỏ script tracking/quảng cáo không cần thiết
-    html = html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-
-    // Cache 25 giây trên CDN của Vercel giúp lướt chuyển box cực nhanh
-    res.setHeader('Cache-Control', 'public, s-maxage=25, stale-while-revalidate=60');
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.status(200).send(html);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    throw new Error('Quá nhiều lần chuyển hướng');
+  } catch (e) {
+    return res.status(502).json({ error: String((e && e.message) || e) });
   }
-}
+};
