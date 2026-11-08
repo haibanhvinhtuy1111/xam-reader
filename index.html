@@ -2,7 +2,6 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<!-- Khóa zoom để iPhone không bị nhảy layout khi gõ phím -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F8F9F5">
@@ -17,38 +16,33 @@
 <style>
 :root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
-/* Tăng khoảng không dưới đáy để không bị thanh Tab Bar đè lên nội dung */
 --barb:calc(var(--sab) + 72px); 
 --shadow:0 4px 12px rgba(11,31,20,.05)}
 
-/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) --- */
+/* --- TỐI ƯU GIAO DIỆN MOBILE (IPHONE) & SỬA LỖI TRÀN NGANG --- */
 @media (max-width: 768px) {
   :root { --cols: 2; }
   .col-pills { display: none !important; }
   
-  /* Giảm khoảng cách thừa hai bên mép màn hình iPhone */
   .screen { padding: calc(var(--sat) + 8px) 14px calc(var(--barb) + 16px) !important; }
-  
-  /* Bo gọn padding bài viết và card */
   .card { padding: 16px 14px !important; border-radius: 20px !important; margin-bottom: 12px !important; }
   .post-card { padding: 14px 12px !important; border-radius: 16px !important; margin-bottom: 10px !important;}
   .rowc { padding: 12px !important; gap: 8px !important; }
   
-  /* Chỉnh lại Box Forums cho thoáng, không bị ép chữ */
   .f-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
   .f-box { padding: 10px 12px !important; border-radius: 14px !important; }
   
-  /* Chỉnh lại Lưới thẻ (Ảnh/Video) để không bị lỗi dấu ? */
   .grid { gap: 8px !important; }
   .tile { padding: 6px !important; gap: 6px !important; border-radius: 12px !important; min-height: 140px; }
   .tile-head { padding: 2px !important; }
   .tile-thumb { border-radius: 6px !important; background: #E5E7EB !important; }
   
-  /* Chỉnh lại thanh điều hướng đỉnh (Header) */
+  /* Giảm padding lề cho overlay đọc bài để có thêm diện tích hiển thị */
   .g-head { padding: calc(var(--sat) + 6px) 12px 8px !important; gap: 6px !important; }
+  .pad { padding: 0 12px 8px !important; }
+  .g-scroll { padding: 8px 12px calc(var(--sab) + 40px) !important; }
+
   .rbtn { width: 40px !important; height: 40px !important; }
-  
-  /* Nút bấm mềm mại hơn trên điện thoại */
   .seg button { padding: 8px 4px !important; font-size: 13.5px !important; }
   .chips button { padding: 5px 10px !important; font-size: 12.5px !important; }
 }
@@ -61,7 +55,6 @@ button{border:0;background:none;cursor:pointer;padding:0}
 input,textarea,select{font-size:16px}
 #app{max-width:680px;margin:0 auto}
 
-/* Màn hình chính */
 .screen{display:none;min-height:100dvh;padding:calc(var(--sat) + 12px) 20px calc(var(--barb) + 16px)}
 .screen.on{display:block}
 h1{font-size:28px;font-weight:800;letter-spacing:-.5px;margin:0 0 16px}
@@ -127,19 +120,34 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .pnav button:disabled{opacity:.4}
 .pnav input{width:64px;height:40px;margin:0;text-align:center;border-radius:12px;background:#fff;box-shadow:var(--shadow);font-weight:600;font-size:14px;padding:0 6px}
 
-/* Post Reader */
-.post-card{background:#fff;border-radius:20px;padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+/* --- CHỐNG TRÀN DÀNH CHO POST READER --- */
+.post-card {
+  background:#fff;
+  border-radius:20px;
+  padding:16px;
+  box-shadow:var(--shadow);
+  margin-bottom:12px;
+  max-width: 100%;       /* Chặn thẻ phình to hơn màn hình */
+  overflow-x: hidden;    /* Cắt đứt các phần tử cố tình tràn ngang */
+}
 .post-card.is-op{border-left:4px solid var(--brand)}
 .post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px}
-.post-body{font-size:15px;line-height:1.55;word-break:break-word;color:var(--ink)}
+
+.post-body {
+  font-size:15px;
+  line-height:1.55;
+  color:var(--ink);
+  overflow-wrap: anywhere;  /* Bắt buộc bẻ gãy mọi từ quá dài để chống tràn */
+  word-break: break-word; 
+}
+.post-body * { max-width: 100%; } /* Ép mọi bảng, ảnh, code block nằm gọn trong khung */
 .post-body blockquote{margin:8px 0;padding:10px 14px;background:var(--input);border-left:3px solid var(--brand);border-radius:12px;font-size:13.5px;color:var(--muted)}
 .post-body a{color:var(--brand);text-decoration:underline}
 .post-body:empty{display:none}
 
-/* Lưới media trong bài viết */
-.post-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
-@media (max-width: 390px) { .post-media-grid { grid-template-columns:repeat(2,1fr); } }
+.post-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px;width:100%;}
+@media (max-width: 390px) { .post-media-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 .sw{position:relative;width:51px;height:31px;flex:none}
 .sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:1}
@@ -151,13 +159,12 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .spin.d{border-color:rgba(30,70,49,.25);border-top-color:var(--brand)}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* THANH TAB BAR NỔI (Đã xử lý khoảng cách không đè lên content) */
 #tabs{position:fixed;z-index:20;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:528px;bottom:max(16px, env(safe-area-inset-bottom));height:64px;border-radius:32px;background:#fff;box-shadow:0 10px 30px rgba(11,31,20,.12);display:flex;align-items:center;padding:0 8px; border: 1px solid var(--line);}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
 
 /* ───────── OVERLAY RỘNG TOÀN MÀN HÌNH & LƯỚI THẺ ───────── */
-.ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}
+.ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column;width:100vw;overflow:hidden;}
 .ov.dark{background:#000;z-index:40;color:#fff}
 .g-head{display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 10px) 16px 10px;max-width:1440px;width:100%;margin:0 auto}
 .rbtn{width:42px;height:42px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;flex:none}
@@ -165,9 +172,19 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .rbtn.on{background:var(--brand);color:#fff}
 .pad{padding:0 16px 8px;max-width:1440px;width:100%;margin:0 auto}
 .bar{height:3px;background:var(--chip);border-radius:3px;margin-top:10px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .25s}
-.g-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px 16px calc(var(--sab) + 40px);max-width:1440px;width:100%;margin:0 auto}
 
-/* LƯỚI THẺ ẢNH (Đã sửa lỗi hiển thị dấu ?) */
+/* Ép khóa chặn trượt ngang hoàn toàn trên vùng đọc */
+.g-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden; /* Cấm Safari kéo ngang */
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 16px calc(var(--sab) + 40px);
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
 .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
 .tile{
   background:#EEF1F6;
@@ -203,11 +220,9 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
   border-radius:8px;overflow:hidden;background:#111827;
   display:flex;align-items:center;justify-content:center;
 }
-/* Loại bỏ các CSS gây hỏng ảnh trên Safari (như transform scale khi không cần thiết) */
 .tile-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover; border:none; outline:none;}
 .tile.vid .tile-thumb{color:#fff;flex-direction:column;gap:4px}
 .tile.vid .tile-thumb small{font-size:10.5px;opacity:.75;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Box hiển thị báo lỗi ảnh rõ ràng hơn thay vì dấu hỏi mờ */
 .tile.bad .tile-thumb{background:#F3F4F6;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-direction:column;gap:4px}
 
 .col-pills{display:flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px}
@@ -361,7 +376,6 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
     <div class="row gap"><i data-ic="image"></i><b>Hiển thị lưới thẻ ảnh</b></div>
     <label class="f">Nguồn ảnh
       <select id="set-img">
-        <!-- Đổi mặc định là TRỰC TIẾP (direct) để sửa triệt để lỗi dấu ? khi hàm proxy tự động get ảnh sai cấu trúc -->
         <option value="direct">Trực tiếp (Nhanh, không lỗi dấu ?)</option>
         <option value="auto">Tự động (Thử nhiều nguồn proxy)</option>
         <option value="own">Qua proxy Vercel riêng</option>
@@ -1443,7 +1457,6 @@ $('#test').onclick = async () => {
 $('#clr-hist').onclick = () => { ['hist', 'recent', 'progress'].forEach((k) => store.set(k, k === 'progress' ? {} : [])); renderHist(); toast('Đã xóa lịch sử & tiến độ đọc'); };
 $('#clr-jar').onclick = () => { jar = {}; store.set('jar', jar); toast('Đã xóa cookie phiên'); };
 
-// Chỉnh lại mặc định cấu hình khi người dùng mở web lần đầu (khắc phục lỗi Dấu hỏi ảnh)
 if (localStorage.getItem('xr.img') === null) set('img', 'direct');
 if (localStorage.getItem('xr.thumbs') === null) set('thumbs', false);
 
