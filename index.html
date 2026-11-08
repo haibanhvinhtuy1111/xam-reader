@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Bổ sung maximum-scale=1, user-scalable=no để iPhone không bị zoom lệch khi gõ phím -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F8F9F5">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +17,21 @@
 <style>
 :root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--barb:max(12px,calc(var(--sab) - 10px));--shadow:0 6px 14px rgba(11,31,20,.07)}
-@media (max-width:768px){:root{--cols:2}}
+
+/* Tối ưu riêng cho Mobile (như iPhone 13) */
+@media (max-width: 768px) {
+  :root { --cols: 2; }
+  /* Ẩn thanh chọn cột trên mobile để tránh tràn Header */
+  .col-pills { display: none !important; }
+  /* Bo gọn padding bài viết và card để tiết kiệm không gian */
+  .post-card { padding: 14px 12px !important; border-radius: 16px !important; }
+  .tile { padding: 6px 8px 8px !important; gap: 6px !important; border-radius: 12px !important; }
+  .grid { gap: 8px !important; }
+  .g-head { padding-left: 10px !important; padding-right: 10px !important; gap: 4px !important; }
+  .rbtn { width: 38px !important; height: 38px !important; }
+  .t17 { font-size: 15px !important; }
+}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
@@ -98,8 +113,9 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .post-body a{color:var(--brand);text-decoration:underline}
 .post-body:empty{display:none}
 
-/* Post Media Grid (gọn gàng trong từng bình luận) */
+/* Post Media Grid */
 .post-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px}
+@media (max-width: 400px) { .post-media-grid { grid-template-columns:repeat(2,1fr); } }
 
 .sw{position:relative;width:51px;height:31px;flex:none}
 .sw input{opacity:0;position:absolute;inset:0;margin:0;width:100%;height:100%;z-index:1}
@@ -110,7 +126,6 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
 .spin.d{border-color:rgba(30,70,49,.25);border-top-color:var(--brand)}
 @keyframes sp{to{transform:rotate(360deg)}}
-/* tab bar nổi dạng viên thuốc */
 #tabs{position:fixed;z-index:20;left:0;right:0;margin:0 auto;width:calc(100% - 32px);max-width:528px;bottom:var(--barb);height:64px;border-radius:32px;background:#fff;box-shadow:0 10px 30px rgba(11,31,20,.16);display:flex;align-items:center;padding:0 8px}
 #tabs button{flex:1;height:50px;margin:0 2px;border-radius:25px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600}
 #tabs button.on{background:var(--brand);color:#fff}
@@ -138,32 +153,36 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
   gap:8px;
   cursor:pointer;
   transition:background .15s,transform .12s,box-shadow .15s;
-  content-visibility:auto;
-  contain-intrinsic-size:210px;
+  /* Đã gỡ content-visibility vì nó gây lỗi giật, chớp và kẹt cuộn trên Safari iOS */
   text-align:left;
 }
-.tile:hover{background:#E4E9F2;box-shadow:0 4px 12px rgba(0,0,0,.06)}
-.tile-head{display:flex;align-items:center;gap:7px;width:100%;padding:2px 2px 0}
+/* Sửa lỗi dính Hover trên iPhone (chỉ máy tính có chuột mới hover) */
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover{background:#E4E9F2;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .tile:hover .tile-thumb img{transform:scale(1.03)}
+  .tile-act:hover{background:rgba(0,0,0,.08)}
+}
+
+/* Đảm bảo thẻ Header không bị tràn Flexbox ra khỏi màn hình nhỏ */
+.tile-head{display:flex;align-items:center;gap:7px;width:100%;padding:2px 2px 0;overflow:hidden}
 .tile-ic{
   width:18px;height:18px;border-radius:4px;
   background:#EA4335;color:#fff;
   display:inline-flex;align-items:center;justify-content:center;flex:none;
 }
 .tile.vid .tile-ic{background:#2563EB}
-.tile-name{flex:1;font-size:12.5px;font-weight:600;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-name{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:#1F2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile-act{
   width:24px;height:24px;border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;
   color:#4B5563;font-size:15px;font-weight:700;flex:none;
 }
-.tile-act:hover{background:rgba(0,0,0,.08)}
 .tile-thumb{
   position:relative;width:100%;aspect-ratio:4/3;
   border-radius:8px;overflow:hidden;background:#111827;
   display:flex;align-items:center;justify-content:center;
 }
 .tile-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .2s}
-.tile:hover .tile-thumb img{transform:scale(1.03)}
 .tile.vid .tile-thumb{color:#fff;flex-direction:column;gap:4px}
 .tile.vid .tile-thumb small{font-size:10.5px;opacity:.75;padding:0 8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tile.bad .tile-thumb{background:#F3F4F6;color:var(--muted);font-size:11px;text-align:center;padding:8px;flex-direction:column;gap:4px}
@@ -354,6 +373,7 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
   <header class="g-head">
     <button class="rbtn" id="g-back" aria-label="Quay lại"><i data-ic="arrow-left"></i></button>
     <div class="grow"><b class="clip t17" id="g-title" style="display:block">Đang tải…</b><small class="muted" id="g-sub"></small></div>
+    <!-- Nút chọn cột này sẽ tự động ẩn trên màn hình điện thoại (đã cấu hình trong CSS) -->
     <div class="col-pills" id="g-cols-bar" title="Đổi số cột hiển thị">
       <button data-c="2">2</button><button data-c="3">3</button><button data-c="4">4</button><button data-c="5">5</button><button data-c="6">6</button>
     </div>
@@ -591,7 +611,6 @@ function parseList(html, base) {
   return { list: out, last };
 }
 
-/* ───────── HÀM BÓC TÁCH KHẮC PHỤC LỖI VIDEO VÀ IFRAME ───────── */
 function parseThreadPosts(html, base) {
   const d = dp(html), posts = [];
   let last = 1;
@@ -617,10 +636,8 @@ function parseThreadPosts(html, base) {
     const clone = bodyEl.cloneNode(true);
     const mediaList = [];
     
-    // 1. Xóa các đoạn mã script, style, nút thu gọn thừa
     clone.querySelectorAll('script, style, .bbCodeBlock-expandLink, .js-expandWatch').forEach((s) => s.remove());
 
-    // 2. Hàm gom Ảnh/Video và xóa chúng khỏi thẻ DOM gốc (để tạo Lưới Thẻ phía dưới)
     const extractAndRemove = (el, type) => {
       if (el.closest('blockquote')) return; 
       if (type === 'image' && (/smilie|emoji|avatar/i.test(el.className) || el.dataset.smilie)) return; 
@@ -635,17 +652,14 @@ function parseThreadPosts(html, base) {
         mediaList.push({ type, url: u });
       }
       
-      // Xóa tận gốc các khung chứa (wrapper) bao quanh Ảnh/Video/Iframe để mất vệt đen
       const wrapper = el.closest('.bbMediaWrapper, .bbImageWrapper, .attachment, [data-s9e-mediaembed]');
       if (wrapper) wrapper.remove();
       else el.remove();
     };
 
     clone.querySelectorAll('img').forEach(img => extractAndRemove(img, 'image'));
-    // ÉP BÓC TÁCH VIDEO VÀ IFRAME (Tiktok, Youtube, file mp4 đính kèm)
     clone.querySelectorAll('video, iframe').forEach(vid => extractAndRemove(vid, 'video'));
     
-    // Xử lý nốt các khung attachments dạng link ảnh ẩn
     clone.querySelectorAll('.message-attachments a.js-lbImage').forEach((a) => {
       const u = abs(a.getAttribute('href'), base);
       if (u && !mediaList.some(m => m.url === u)) mediaList.push({ type: 'image', url: u });
@@ -1055,8 +1069,6 @@ $('#read-link').onclick = () => { const u = resolveLinkInp(); if (u) openReader(
 $('#link').addEventListener('keydown', (e) => { if (e.key === 'Enter') { const u = resolveLinkInp(); if (u) openGallery(u); } });
 $('#paste').onclick = async () => { try { $('#link').value = await navigator.clipboard.readText(); } catch { toast('Không đọc được clipboard, hãy dán thủ công'); } };
 
-
-/* ───────── TRÌNH ĐỌC BÀI VIẾT TỰ ĐỘNG ÉP MEDIA VÀO LƯỚI ───────── */
 let R = null, rTok = 0;
 const rdr = $('#rdr'), rList = $('#r-list');
 const isSaved = (u) => saved().some((x) => x.url === u);
@@ -1128,7 +1140,6 @@ function renderReaderPosts() {
   }
   
   rList.innerHTML = list.map((p) => {
-    // Render phần lưới ảnh/video bên trong bài viết
     const mediaGridHTML = p.mediaList.length ? `
       <div class="post-media-grid">
         ${p.mediaList.map((m, idx) => {
@@ -1166,7 +1177,6 @@ function renderReaderPosts() {
   }).join('');
 }
 
-// Lắng nghe sự kiện click trên từng ô trong Lưới Thẻ
 rList.addEventListener('click', (e) => {
   const card = e.target.closest('.tile[data-raw]');
   if (card) {
@@ -1193,7 +1203,6 @@ $('#r-prev').onclick = () => { if (R && R.page > 1) loadReaderPage(rTok, R.page 
 $('#r-next').onclick = () => { if (R && R.page < R.total) loadReaderPage(rTok, R.page + 1); };
 $('#r-jump').onchange = (e) => { if (R) loadReaderPage(rTok, clamp(+e.target.value || 1, 1, R.total)); };
 
-/* ───────── THƯ VIỆN LƯỚI THẺ (DRIVE GALLERY TOÀN MÀN HÌNH) ───────── */
 let gTok = 0, G = null, gTimer = null;
 const gal = $('#gal'), grid = $('#g-grid'), gmsg = $('#g-msg');
 seg($('#g-seg'), (v) => { if (G) { G.filter = v; update(true); } });
@@ -1317,7 +1326,6 @@ grid.addEventListener('click', (e) => {
   const imgs = G.view.filter((x) => x.type === 'image'); openLB(imgs, imgs.indexOf(it));
 });
 
-/* ───────── Lightbox ───────── */
 const lb = $('#lb'), lbImg = $('#lb-img'), stage = $('#lb-stage');
 const L = { list: [], i: 0, s: 1, x: 0, y: 0 };
 const applyT = (anim) => { lbImg.style.transition = anim ? 'transform .2s' : 'none'; lbImg.style.transform = `translate(${L.x}px,${L.y}px) scale(${L.s})`; };
@@ -1369,7 +1377,6 @@ addEventListener('keydown', (e) => { if (lb.hidden) return; if (e.key === 'Arrow
   stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
 }
 
-/* ───────── Trình phát video ───────── */
 function openVideo(u) {
   const body = $('#vm-body'); $('#vm-open').href = u;
   body.innerHTML = VID.test(u) ? `<video src="${esc(u)}" controls autoplay playsinline></video>` : `<iframe src="${esc(u)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
@@ -1377,7 +1384,6 @@ function openVideo(u) {
 }
 $('#vm-close').onclick = uiBack;
 
-/* ───────── Cài đặt ───────── */
 function loadSettings() {
   $('#set-domain').value = cfg.domain; $('#set-remote').value = cfg.remote; $('#set-proxy').value = cfg.proxy; $('#set-key').value = cfg.key;
   $('#set-cookie').value = cfg.cookie; $('#set-ua').value = cfg.ua; $('#set-img').value = cfg.img; $('#set-thumbs').checked = cfg.thumbs; $('#set-cols').value = String(cfg.cols);
@@ -1410,7 +1416,6 @@ $('#test').onclick = async () => {
 $('#clr-hist').onclick = () => { ['hist', 'recent', 'progress'].forEach((k) => store.set(k, k === 'progress' ? {} : [])); renderHist(); toast('Đã xóa lịch sử & tiến độ đọc'); };
 $('#clr-jar').onclick = () => { jar = {}; store.set('jar', jar); toast('Đã xóa cookie phiên'); };
 
-/* ───────── Khởi động ───────── */
 loadSettings(); renderHist(); renderForumBoxes();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 (async () => {
