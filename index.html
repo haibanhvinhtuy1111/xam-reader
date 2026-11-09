@@ -16,7 +16,7 @@
 <style>
 :root{--bg:#F8F9F5;--ink:#111827;--brand:#1E4631;--muted:#6B7280;--chip:#EEF0EA;--soft:#E8EFE9;--warn:#FDF6EC;--input:#F4F5F0;--line:#E5E7EB;--cols:5;
 --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
---barb:calc(var(--sab) + 72px); 
+--barb:calc(var(--sab) + 72px);
 --shadow:0 4px 12px rgba(11,31,20,.05)}
 
 @media (max-width: 768px) {
@@ -119,20 +119,20 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
   padding:16px;
   box-shadow:var(--shadow);
   margin-bottom:12px;
-  min-width: 0;          
-  max-width: 100%;       
-  overflow-x: hidden;    
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .post-card.is-op{border-left:4px solid var(--brand)}
 .post-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
-.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px; min-width:0;} 
+.post-au{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:6px; min-width:0;}
 
 .post-body {
   font-size:15px;
   line-height:1.55;
   color:var(--ink);
-  overflow-wrap: anywhere;  
-  word-break: break-word; 
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .post-body * { max-width: 100%; }
 .post-body img, .post-body video, .post-body iframe { height: auto; border-radius: 8px; }
@@ -174,13 +174,13 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .g-scroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden; 
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding: 8px 16px calc(var(--sab) + 40px);
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
-  min-width: 0; 
+  min-width: 0;
 }
 
 .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
@@ -367,7 +367,7 @@ code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:12px}
     <label class="f">Địa chỉ proxy<input type="text" id="set-proxy" autocapitalize="none" autocorrect="off"></label>
     <label class="f">Khóa truy cập<input type="password" id="set-key" autocomplete="off"></label>
     <label class="f">Cookie (tùy chọn: <code>cf_clearance</code>, <code>xf_user</code>...)<textarea id="set-cookie" placeholder="cf_clearance=...; xf_user=..." autocapitalize="none" autocorrect="off"></textarea></label>
-   <label class="f">User-Agent<input type="text" id="set-ua" placeholder="Để trống = mặc định" autocapitalize="none" autocorrect="off"></label>
+    <label class="f">User-Agent<input type="text" id="set-ua" placeholder="Để trống = mặc định" autocapitalize="none" autocorrect="off"></label>
     <label class="f">Tài khoản diễn đàn (tự đăng nhập)<input type="text" id="set-login" placeholder="Email hoặc tên đăng nhập" autocomplete="username" autocapitalize="none" autocorrect="off"></label>
     <label class="f">Mật khẩu<input type="password" id="set-pass" autocomplete="current-password"></label>
     <button class="btn" id="test">Kiểm tra kết nối &amp; Đăng nhập</button>
@@ -639,24 +639,6 @@ function isLoggedInHtml(html) {
   return /p-navgroup-link--user|data-logged-in="true"|account\/visitor-menu/i.test(html || '');
 }
 
-const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
-const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
-
-function extractXfToken(html) {
-  if (!html) return '';
-  const d = dp(html);
-  return d.querySelector('input[name="_xfToken"]')?.value
-    || d.querySelector('html')?.dataset?.csrf
-    || (html.match(/name="_xfToken"\s+value="([^"]+)"/) || [])[1]
-    || (html.match(/data-csrf="([^"]+)"/) || [])[1]
-    || (html.match(/csrf:\s*'([^']+)'/) || [])[1]
-    || '';
-}
-
-function isLoggedInHtml(html) {
-  return /p-navgroup-link--user|data-logged-in="true"|account\/visitor-menu/i.test(html || '');
-}
-
 function parsePage(html, base, pageNum = 1) {
   const d = dp(html), media = [], seen = new Set();
   const add = (type, raw, author = '') => {
@@ -670,16 +652,17 @@ function parsePage(html, base, pageNum = 1) {
     const body = node.classList.contains('message-body') ? node : (node.querySelector('.message-body') || node);
     body.querySelectorAll('img.bbImage, img').forEach((img) => {
       if (/avatar|smilie|emoji|reaction/i.test(img.className) || img.dataset.smilie || img.closest('blockquote')) return;
-      add('image', img.dataset.url || img.dataset.src || img.dataset.original || img.getAttribute('src'), au);
+      const full = img.closest('a.js-lbImage')?.getAttribute('href');
+      add('image', img.dataset.url || full || img.dataset.src || img.dataset.original || img.getAttribute('src'), au);
     });
-    body.querySelectorAll('video, iframe').forEach((v) => { 
-      if (v.closest('blockquote')) return; 
+    body.querySelectorAll('video, iframe').forEach((v) => {
+      if (v.closest('blockquote')) return;
       let raw = v.getAttribute('src') || v.dataset.src || v.dataset.url;
       if (!raw && v.tagName === 'VIDEO') {
         const srcEl = v.querySelector('source');
         if (srcEl) raw = srcEl.getAttribute('src') || srcEl.dataset.src;
       }
-      add('video', raw, au); 
+      add('video', raw, au);
     });
     body.querySelectorAll('a[href]').forEach((a) => { const h = a.getAttribute('href'); if (h && VID.test(h) && !a.closest('blockquote')) add('video', h, au); });
   });
@@ -769,14 +752,18 @@ function parseThreadPosts(html, base) {
 
     const clone = bodyEl.cloneNode(true);
     const mediaList = [];
-    
+
     clone.querySelectorAll('script, style, .bbCodeBlock-expandLink, .js-expandWatch').forEach((s) => s.remove());
 
     const extractAndRemove = (el, type) => {
-      if (el.closest('blockquote')) return; 
-      if (type === 'image' && (/smilie|emoji|avatar|reaction/i.test(el.className) || el.dataset.smilie)) return; 
-      
+      if (el.closest('blockquote')) return;
+      if (type === 'image' && (/smilie|emoji|avatar|reaction/i.test(el.className) || el.dataset.smilie)) return;
+
       let raw = el.dataset.url || el.dataset.src || el.dataset.original || el.getAttribute('src');
+      if (el.tagName === 'IMG' && !el.dataset.url) {
+        const full = el.closest('a.js-lbImage')?.getAttribute('href');
+        if (full) raw = full;
+      }
       if (!raw && el.tagName === 'VIDEO') {
         const srcEl = el.querySelector('source');
         if (srcEl) raw = srcEl.getAttribute('src') || srcEl.dataset.src;
@@ -785,7 +772,7 @@ function parseThreadPosts(html, base) {
       if (u && !mediaList.some(m => m.url === u)) {
         mediaList.push({ type, url: u });
       }
-      
+
       const wrapper = el.closest('.bbMediaWrapper, .bbImageWrapper, .attachment, [data-s9e-mediaembed]');
       if (wrapper) wrapper.remove();
       else el.remove();
@@ -793,7 +780,7 @@ function parseThreadPosts(html, base) {
 
     clone.querySelectorAll('img').forEach(img => extractAndRemove(img, 'image'));
     clone.querySelectorAll('video, iframe').forEach(vid => extractAndRemove(vid, 'video'));
-    
+
     clone.querySelectorAll('.message-attachments a.js-lbImage').forEach((a) => {
       const u = abs(a.getAttribute('href'), base);
       if (u && !mediaList.some(m => m.url === u)) mediaList.push({ type: 'image', url: u });
@@ -871,12 +858,14 @@ const AUTO_AUTH = {
 };
 let authPromise = null;
 let cachedXfToken = '';
-let cachedCse = null; // Lưu cache token của Google Search nhúng trên XamVN
+let cachedCse = null;
 
 async function ensureAuth(force = false) {
   if (!force && cachedXfToken && (jar.xf_user || cfg.cookie.includes('xf_user=') || jar._authed)) {
     return cachedXfToken;
   }
+  // Không có tài khoản thì khỏi thử đăng nhập lại mỗi lần
+  if (!force && cachedXfToken && !AUTO_AUTH.login) return cachedXfToken;
   if (authPromise) return authPromise;
 
   authPromise = (async () => {
@@ -1031,7 +1020,7 @@ async function searchForum({ q, by, exact, order }) {
 
   let xfToken = await ensureAuth(false);
 
-  // ── LUỒNG 0: TÌM QUA GOOGLE CSE NHÚNG TRÊN XAMVN (/google-search/?q=...) NHƯ ẢNH 1 ──
+  // ── LUỒNG 0: GOOGLE CSE NHÚNG TRÊN XAMVN (/google-search/?q=...) ──
   const taskGoogleCSE = (async () => {
     if (by === 'author') return;
     try {
@@ -1057,7 +1046,8 @@ async function searchForum({ q, by, exact, order }) {
         if (r.status !== 'fulfilled' || !r.value.html) continue;
         const jsonMatch = r.value.html.match(/cb\(([\s\S]*)\)\s*;?\s*$/);
         if (!jsonMatch) continue;
-        const data = JSON.parse(jsonMatch[1]);
+        let data;
+        try { data = JSON.parse(jsonMatch[1]); } catch { continue; }
         for (const item of (data.results || [])) {
           pushRawLink(item.unescapedUrl || item.url, item.titleNoFormatting || item.title, item.contentNoFormatting || item.content, 'Google Search Xamvn');
         }
@@ -1536,7 +1526,7 @@ function renderForumThreadList() {
   $('#f-total').textContent = `/ ${F.total}`;
   $('#f-prev').disabled = F.page <= 1;
   $('#f-next').disabled = F.page >= F.total;
-  $('#f-pnav').hidden = F.total <= 1 && !filtered.length;
+  $('#f-pnav').hidden = F.total <= 1;
 
   el.innerHTML = filtered.length
     ? filtered.map(rowHTML).join('')
@@ -1650,7 +1640,7 @@ function renderReaderPosts() {
     rList.innerHTML = '<p class="muted" style="text-align:center;padding:32px">Không có bình luận nào khớp bộ lọc trên trang này.</p>';
     return;
   }
-  
+
   rList.innerHTML = list.map((p) => {
     const mediaGridHTML = p.mediaList.length ? `
       <div class="post-media-grid">
@@ -1663,8 +1653,8 @@ function renderReaderPosts() {
               <span class="tile-name" title="${esc(m.url)}">${esc(fileLabel(m.url, idx))}</span>
             </div>
             <div class="tile-thumb">
-              ${isVid 
-                ? `${ic('play', 28)}<small>${esc(hostOf(m.url))}</small>` 
+              ${isVid
+                ? `${ic('play', 28)}<small>${esc(hostOf(m.url))}</small>`
                 : `<img loading="lazy" decoding="async" referrerpolicy="no-referrer" data-a="0" src="${esc(srcFor(m.url, chainFor(true)[0]))}" alt="">`
               }
             </div>
@@ -1672,7 +1662,7 @@ function renderReaderPosts() {
         `}).join('')}
       </div>
     ` : '';
-    
+
     return `
       <article class="post-card ${p.isOp ? 'is-op' : ''}">
         <div class="post-head">
