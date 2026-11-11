@@ -96,6 +96,7 @@ label.f input,label.f textarea,label.f select{margin-top:6px;font-weight:400}
 .badge{display:inline-block;background:var(--soft);color:var(--brand);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;margin-right:6px;vertical-align:1px}
 .badge.pin{background:#FEF3C7;color:#92400E}
 .badge.prog{background:#E0E7FF;color:#1E40AF;margin-left:6px;margin-right:0}
+.badge.arc{background:#FCE7F3;color:#9D174D}
 .cats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .cats .card{margin:0;min-height:124px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;cursor:pointer;transition:border .15s}
 .cats .card.active-cat{outline:2px solid var(--brand)}
@@ -527,10 +528,11 @@ const isXamUrl = (u) => {
   const h = hostOf(u).toLowerCase();
   return !h || h === hostOf(cfg.domain).toLowerCase() || /(^|\.)(xamvn|xamvl)\./i.test(h);
 };
+/* Chuẩn hóa link chủ đề: luôn giữ dấu / ở cuối để XenForo không báo lỗi 404 */
 const normThread = (u) => {
   const s = String(u).split('#')[0];
   const m = s.match(/^(https?:\/\/[^/]+\/threads\/[^/?#]+)/i);
-  return m ? m[1] : s;
+  return m ? m[1].replace(/\/+$/, '') + '/' : s;
 };
 const threadKey = (u) => {
   const mId = String(u).match(/\/threads\/(?:[^/?#]*\.)?(\d+)/i);
@@ -540,7 +542,15 @@ const threadKey = (u) => {
   const m = String(u).match(/\/threads\/([^/?#]+)/i);
   return m ? m[1].toLowerCase() : normThread(u);
 };
-const abs = (raw, base) => { if (!raw) return null; raw = raw.trim(); if (!raw || /^(data|javascript|blob):/i.test(raw)) return null; try { return new URL(raw, base + '/').href; } catch { return null; } };
+const abs = (raw, base) => {
+  if (!raw) return null;
+  raw = raw.trim();
+  if (!raw || /^(data|javascript|blob):/i.test(raw)) return null;
+  // Nếu ảnh nằm trong trang Wayback Machine (/web/2023...im_/https://...), bóc lấy URL gốc hoặc gắn web.archive.org
+  const wbImg = raw.match(/\/web\/\d+(?:im_|if_|oe_)?\/(https?:\/\/.+)$/i);
+  if (wbImg) return wbImg[1];
+  try { return new URL(raw, base.replace(/\/+$/, '') + '/').href; } catch { return null; }
+};
 const normDomain = (s) => { s = (s || '').trim(); if (!s) return null; if (!/^https?:\/\//i.test(s)) s = 'https://' + s; const m = s.match(/^https?:\/\/[^/\s?#]+/i); return m ? m[0].toLowerCase() : null; };
 const rebase = (u) => {
   const o = originOf(u);
@@ -655,8 +665,99 @@ async function fx(url, { method = 'GET', body, contentType, allowErrorStatus = f
     }
   }
   if (isChallenge(j.html || '', j.status)) throw cfErr();
-  if (!allowErrorStatus && j.status >= 400) throw new Error('Máy chủ trả về HTTP ' + j.status);
+  if (!allowErrorStatus && j.status >= 400) {
+    const err = new Error('Máy chủ trả về HTTP ' + j.status);
+    err.status = j.status;
+    throw err;
+  }
   return { html: j.html || '', url: j.url || url, status: j.status || 200 };
+}
+
+/* ───────── TỰ ĐỘNG KHÔI PHỤC BÀI VIẾT BỊ XÓA (LỖI HTTP 404) TỪ KHO LƯU TRỮ WAYBACK HOẶC TÌM LẠI THEO TIÊU ĐỀ ───────── */
+async function fetchThreadWithFallback(targetUrl, fallbackTitle = '', page = 1) {
+  // Đảm bảo URL có dấu / chuẩn xác cho XenForo
+  let cleanTarget = rebase(targetUrl.trim());
+  if (/\/threads\/[^/?#]+$/i.test(cleanTarget)) cleanTarget += '/';
+  if (page > 1 && !/\/page-\d+/i.test(cleanTarget)) {
+    cleanTarget = cleanTarget.replace(/\/+$/, '') + `/page-${page}`;
+  }
+
+  // 1. Thử tải trực tiếp từ diễn đàn hiện tại (xamvn.work)
+  const directRes = await fx(cleanTarget, { allowErrorStatus: true });
+  if (directRes.status < 400 && (directRes.html.includes('message--post') || directRes.html.includes('message-body'))) {
+    return { ...directRes, isArchived: false };
+  }
+
+  // 2. Nếu bị lỗi 404 do URL bị cụt ID từ máy tìm kiếm ngoài, thử dùng chỉ mục ID hoặc tìm lại bằng tiêu đề trên Xamvn
+  const mSlug = cleanTarget.match(/\/threads\/([^/?#]+)/i);
+  const slug = mSlug ? mSlug[1] : '';
+  const mId = slug.match(/\.(\d+)$/) || slug.match(/^(\d+)$/);
+  const threadId = mId ? mId[1] : '';
+
+  if (threadId && !/\/threads\/\d+\/$/i.test(cleanTarget)) {
+    const shortIdUrl = `${cfg.domain}/threads/${threadId}/${page > 1 ? 'page-' + page : ''}`;
+    const shortRes = await fx(shortIdUrl, { allowErrorStatus: true, timeoutMs: 8000 });
+    if (shortRes.status < 400 && (shortRes.html.includes('message--post') || shortRes.html.includes('message-body'))) {
+      return { ...shortRes, isArchived: false };
+    }
+  }
+
+  // 3. Nếu bài đã bị xóa trên Xamvn (HTTP 404), tự động tìm bản lưu trên Wayback Machine (web.archive.org)
+  if (slug || threadId) {
+    const archiveDomains = ['xamvn.com', 'xamvn.vc', 'xamvn.work', 'xamvn.id', 'xamvn.gay', 'xamvn.xyz', 'xamvn.me'];
+    const searchPattern = threadId ? `*.${threadId}*` : `*${slug.slice(0, 35)}*`;
+
+    for (const dom of archiveDomains) {
+      const cdxApi = `https://web.archive.org/cdx/search/cdx?url=${dom}/threads/${searchPattern}&output=json&fl=timestamp,original&filter=statuscode:200&collapse=urlkey&limit=5`;
+      try {
+        const cdxRes = await fx(cdxApi, { allowErrorStatus: true, timeoutMs: 7000 });
+        if (cdxRes.status === 200 && cdxRes.html.trim().startsWith('[')) {
+          const rows = JSON.parse(cdxRes.html);
+          if (rows.length > 1) {
+            const [ts, origUrl] = rows[rows.length - 1]; // Lấy bản snapshot mới nhất
+            const wbUrl = `https://web.archive.org/web/${ts}id_/${origUrl}`;
+            const wbPage = await fx(wbUrl, { allowErrorStatus: true, timeoutMs: 12000 });
+            if (wbPage.status < 400 && (wbPage.html.includes('message--post') || wbPage.html.includes('message-body'))) {
+              toast('📦 Bài gốc đã bị xóa trên Xamvn · Đã khôi phục từ Kho lưu trữ!');
+              return { ...wbPage, url: origUrl, isArchived: true };
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // 4. Nếu URL không có ID và có tiêu đề (fallbackTitle), thử tìm nhanh tiêu đề đó trên Xamvn để lấy URL mới
+  if (fallbackTitle && fallbackTitle.length > 5 && page === 1) {
+    try {
+      const tok = cachedXfToken || await ensureAuth(false);
+      const p = new URLSearchParams({ keywords: `"${fallbackTitle}"`, 'c[title_only]': '1', order: 'date', search_type: 'post' });
+      if (tok) p.set('_xfToken', tok);
+      const sRes = await fx(`${cfg.domain}/search/search`, {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: p.toString(),
+        allowErrorStatus: true,
+        timeoutMs: 8000
+      });
+      const foundList = parseList(sRes.html, cfg.domain).list;
+      if (foundList.length > 0 && foundList[0].url !== normThread(cleanTarget)) {
+        const recoveredRes = await fx(foundList[0].url, { allowErrorStatus: true, timeoutMs: 9000 });
+        if (recoveredRes.status < 400 && (recoveredRes.html.includes('message--post') || recoveredRes.html.includes('message-body'))) {
+          toast('🔄 Đã tự động cập nhật sang đường dẫn mới của chủ đề');
+          return { ...recoveredRes, isArchived: false };
+        }
+      }
+    } catch {}
+  }
+
+  const err = new Error(
+    directRes.status === 404
+      ? 'Chủ đề này đã bị Admin Xamvn xóa khỏi máy chủ (HTTP 404) và chưa có bản sao lưu trên Archive.org.'
+      : `Máy chủ trả về HTTP ${directRes.status}`
+  );
+  err.status = directRes.status;
+  throw err;
 }
 
 function parsePage(html, base, pageNum = 1) {
@@ -695,14 +796,11 @@ function parsePage(html, base, pageNum = 1) {
 
 function parseList(html, base) {
   const d = dp(html), out = [], seen = new Set();
-  // Chỉ xóa thanh sidebar phụ bên phải, giữ nguyên toàn bộ vùng nội dung chính của XenForo
   d.querySelectorAll('.p-body-sidebar, .p-body-sideNav, .p-footer').forEach((el) => el.remove());
 
   d.querySelectorAll('.structItem--thread, .contentRow, .block-row').forEach((row) => {
-    // Bỏ qua nếu row nằm trong widget phụ
     if (row.closest('[data-widget-id], [data-widget-key]')) return;
 
-    // Duyệt tất cả thẻ <a> trong tiêu đề để tìm đúng link /threads/ hoặc /posts/ (tránh vướng thẻ Prefix .labelLink)
     const links = row.querySelectorAll('.structItem-title a[href], .contentRow-title a[href], h3 a[href], a[href*="/threads/"], a[href*="/posts/"]');
     let a = null;
     for (const candidate of links) {
@@ -864,14 +962,16 @@ const srcFor = (u, m) => m === 'direct' ? u
   : imgApi() + '?url=' + encodeURIComponent(u) + '&ref=' + encodeURIComponent(cfg.domain + '/') + (cfg.key ? '&k=' + encodeURIComponent(cfg.key) : '');
 const chainFor = (thumb) => { const m = cfg.img; if (m === 'auto') return thumb && cfg.thumbs ? ['wsrvT', 'direct', 'wsrv', 'own'] : ['direct', 'wsrv', 'own']; if (m === 'wsrv') return thumb ? ['wsrvT', 'wsrv'] : ['wsrv']; return [m]; };
 
-async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
-  const first = await fx(rebase(input.trim()));
+async function scrapeThread(input, { fallbackTitle = '', cancelled, onTitle, onProgress }) {
+  const first = await fetchThreadWithFallback(input, fallbackTitle, 1);
   const origin = originOf(first.url) || cfg.domain;
   const root = normThread(first.url).replace(/\/+$/, '');
   const cur = +((first.url.match(/page-(\d+)/) || [])[1] || 1);
   const p1 = parsePage(first.html, origin, cur);
   if (onTitle) onTitle(p1.title);
-  const total = p1.last, by = new Map([[cur, p1.media]]), bad = [];
+  // Nếu là bản khôi phục từ Wayback Machine thì chỉ đọc trang đã khôi phục hoặc các trang hiện có
+  const total = first.isArchived ? 1 : p1.last;
+  const by = new Map([[cur, p1.media]]), bad = [];
   let done = 1;
   const emit = () => { const seen = new Set(), list = []; for (let p = 1; p <= total && by.has(p); p++) for (const m of by.get(p)) if (!seen.has(m.url)) { seen.add(m.url); list.push(m); } onProgress(list, done, total); };
   emit();
@@ -888,7 +988,7 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   let recovered = 0;
   for (const p of bad) { if (cancelled()) break; try { by.set(p, parsePage((await fx(root + '/page-' + p)).html, origin, p).media); recovered++; } catch {} }
   emit();
-  return { failed: bad.length - recovered, recovered };
+  return { failed: bad.length - recovered, recovered, isArchived: first.isArchived };
 }
 
 /* ───────── TỰ ĐỘNG ĐĂNG NHẬP & GIỮ PHIÊN XENFORO 2 ───────── */
@@ -978,7 +1078,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
   const kCompact = kTokens.join('');
   const tagSlug = kTokens.join('-');
 
-  // XenForo MySQL FullText chặn từ <= 3 ký tự (như "yên bái", "cô cổng", "vtv") nếu không bọc trong ngoặc kép
   const hasShortWord = kw.split(/\s+/).some((w) => w.length <= 3);
   const queryTerm = (exact || (hasShortWord && kw.includes(' '))) ? `"${kw}"` : kw;
 
@@ -1002,7 +1101,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     }
   };
 
-  // Kiểm tra bài viết có khớp với từ khóa không (chặn 2 bài thông báo rác của công cụ tìm kiếm ngoài)
   const isRelevantResult = (title, url, snippet = '', author = '') => {
     const lowTitle = rmTone(title);
     if (/thong bao xamvn bi chan|kien thuc - ci ngoai/i.test(lowTitle) && !lowTitle.includes(kNorm)) {
@@ -1013,7 +1111,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     const hayCompact = hay.replace(/[^a-z0-9]/g, '');
     if (hay.includes(kNorm)) return true;
     if (kCompact.length >= 3 && hayCompact.includes(kCompact)) return true;
-    // Chỉ cần khớp ít nhất 1 nửa số từ khóa (hoặc 1 từ nếu câu ngắn)
     const matched = kTokens.filter((tk) => hay.includes(tk)).length;
     return matched >= Math.max(1, Math.floor(kTokens.length / 2));
   };
@@ -1027,7 +1124,7 @@ async function searchForum({ q, by, exact, order, onPartial }) {
   if (/^https?:\/\/[^/]+\/threads\//i.test(kw) || /^\/?threads\//i.test(kw)) {
     const directUrl = normThread(rebase(/^https?:\/\//i.test(kw) ? kw : `${cfg.domain}/${kw.replace(/^\/+/, '')}`));
     try {
-      const r = await fx(directUrl);
+      const r = await fetchThreadWithFallback(directUrl, '', 1);
       const p = parsePage(r.html, originOf(r.url) || cfg.domain, 1);
       return {
         list: [{
@@ -1073,7 +1170,9 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     if (mBing) {
       try { u = atob(mBing[1].replace(/-/g, '+').replace(/_/g, '/')); } catch {}
     }
-    // Hỗ trợ bắt mọi link có chứa /threads/ kể cả từ tên miền cũ lạ
+    // Bỏ qua các URL bị cắt cụt bằng dấu "..." (vì không có ID thật sẽ gây lỗi 404)
+    if (u.includes('...') || u.includes('%E2%80%A6')) return;
+
     const mThreadPath = u.match(/\/(threads|posts)\/[^/?#]+/i);
     if (mThreadPath && !/^https?:\/\//i.test(u)) {
       u = `${cfg.domain}${mThreadPath[0]}/`;
@@ -1083,6 +1182,9 @@ async function searchForum({ q, by, exact, order, onPartial }) {
       u = abs(u, cfg.domain) || '';
     }
     if (!isXamUrl(u) || !/\/(threads|posts)\//i.test(u)) return;
+
+    // Đảm bảo link /threads/ phải có đuôi số ID (VD: .12345 hoặc /threads/12345/) để tránh link rác 404
+    if (/\/threads\//i.test(u) && !/\/threads\/(?:[^/?#]*\.)?\d+(?:\/|$)/i.test(u)) return;
 
     const cleanUrl = normThread(rebase(u));
     const key = threadKey(cleanUrl);
@@ -1099,7 +1201,7 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     out.push({
       url: cleanUrl,
       title: cleanTitle,
-      prefix: '',
+      prefix: meta.includes('Kho lưu trữ') ? 'Lưu trữ' : '',
       isSticky: false,
       author: '',
       snippet: String(snippet || '').replace(/\s+/g, ' ').trim(),
@@ -1113,7 +1215,7 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     await ensureAuth(false);
   }
 
-  // ── LUỒNG 1: TÌM KIẾM TRỰC TIẾP TRÊN XENFORO 2 (DÙNG CHUẨN REDIRECT 303 CỦA API/PROXY.JS) ──
+  // ── LUỒNG 1: TÌM KIẾM TRỰC TIẾP TRÊN XENFORO 2 ──
   const harvestXfSearchUrl = async (searchPageUrl, initialHtml = '', queryUsed = queryTerm) => {
     const base = cfg.domain;
     const firstHtml = initialHtml || (await fx(rebase(searchPageUrl), { timeoutMs: 10000 })).html;
@@ -1140,7 +1242,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
   };
 
   const runXfSearchAttempt = async (kwToUse, modeToUse = by, ordToUse = order || 'relevance') => {
-    // Luôn lấy _xfToken từ /search/ nếu chưa có
     if (!cachedXfToken) {
       const formPage = await fx(`${cfg.domain}/search/`, { allowErrorStatus: true, timeoutMs: 8000 });
       cachedXfToken = extractXfToken(formPage.html);
@@ -1162,7 +1263,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
       return p.toString();
     };
 
-    // Bước A: Gửi POST tiêu chuẩn (không kèm _xfResponseType=json) để api/proxy.js tự động đi theo 303 Redirect sang trang kết quả
     let res = await fx(`${cfg.domain}/search/search`, {
       method: 'POST',
       contentType: 'application/x-www-form-urlencoded',
@@ -1176,7 +1276,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
       return;
     }
 
-    // Bước B: Nếu token hết hạn hoặc server trả về JSON redirect, lấy lại token tươi từ /search/ rồi thử lại
     const freshForm = await fx(`${cfg.domain}/search/`, { allowErrorStatus: true, timeoutMs: 7000 });
     const freshToken = extractXfToken(freshForm.html);
     if (freshToken) {
@@ -1204,7 +1303,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
   const taskXenForo = (async () => {
     try {
       await runXfSearchAttempt(queryTerm, by, order || 'relevance');
-      // Nếu từ khóa ngắn bị chặn ở chế độ thường, thử tìm không ngoặc kép hoặc tìm theo Tác giả
       if (xfCount === 0 && queryTerm !== kw) {
         await runXfSearchAttempt(kw, by, 'date');
       }
@@ -1214,7 +1312,7 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     } catch {}
   })();
 
-  // ── LUỒNG 2: TÌM QUA HỆ THỐNG TAGS (/tags/yen-bai/) ──
+  // ── LUỒNG 2: TÌM QUA HỆ THỐNG TAGS (/tags/...) ──
   const taskTags = (async () => {
     if (!tagSlug || by === 'author') return;
     try {
@@ -1235,14 +1333,14 @@ async function searchForum({ q, by, exact, order, onPartial }) {
     } catch {}
   })();
 
-  // ── LUỒNG 3: WAYBACK MACHINE CDX QUA PROXY (VƯỢT LỖI CORS TRÌNH DUYỆT & CHỈ GỌI 4 DOMAIN LỚN NHẤT) ──
+  // ── LUỒNG 3: WAYBACK MACHINE CDX QUA PROXY ──
   const taskWaybackCDX = (async () => {
     if (by === 'author' || !kTokens.length) return;
     const filterStr = kTokens.map((tk) => `filter=${encodeURIComponent(`original:.*${tk}.*`)}`).join('&');
     const coreDomains = ['xamvn.com', 'xamvn.vc', 'xamvn.work', 'xamvn.id'];
 
     await Promise.allSettled(coreDomains.map(async (dom) => {
-      const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${dom}/threads/*&output=json&fl=original&collapse=urlkey&limit=40&${filterStr}`;
+      const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${dom}/threads/*&output=json&fl=original&filter=statuscode:200&collapse=urlkey&limit=40&${filterStr}`;
       try {
         const pr = await fx(cdxUrl, { allowErrorStatus: true, timeoutMs: 8500 });
         if (pr.status === 200 && pr.html.trim().startsWith('[')) {
@@ -1323,7 +1421,6 @@ async function searchForum({ q, by, exact, order, onPartial }) {
 
   await Promise.allSettled([taskXenForo, taskTags, taskWaybackCDX, taskGoogleCSE, taskExternalWeb]);
 
-  // ── LUỒNG DỰ PHÒNG CUỐI: QUÉT NHANH CÁC TRANG MỚI NHẤT & CHUYÊN MỤC LỚN NẾU CHƯA ĐỦ KẾT QUẢ ──
   if (out.length < 5) {
     try {
       const scanUrls = [
@@ -1387,11 +1484,12 @@ const setSeg = (el, v) => { const b = $(`button[data-v="${v}"]`, el); if (b) b.c
 
 const rowHTML = (t) => {
   const prog = getProg(t.url);
+  const isArc = t.prefix === 'Lưu trữ';
   return `<div class="card rowc ${prog ? 'is-read' : ''}" data-u="${esc(t.url)}" data-t="${esc(t.title)}">
     <div class="grow">
       <b class="clip2">
         ${t.isSticky ? '<span class="badge pin">Ghim</span>' : ''}
-        ${t.prefix ? `<span class="badge">${esc(t.prefix)}</span>` : ''}
+        ${t.prefix ? `<span class="badge ${isArc ? 'arc' : ''}">${esc(t.prefix)}</span>` : ''}
         ${esc(t.title)}
       </b>
       ${t.snippet ? `<p class="muted sm clip2">${esc(t.snippet)}</p>` : ''}
@@ -1606,7 +1704,7 @@ $('#f-custom-go').onclick = () => {
 function buildForumUrl(path, page, order) {
   let clean = path.replace(/\/+$/, '');
   const altClean = clean.startsWith('/r/') ? clean.replace(/^\/r\//, '/forums/') : clean.replace(/^\/forums\//, '/r/');
-  const pSeg = page > 1 ? `/page-${page}` : '';
+  const pSeg = page > 1 ? `/page-${page}` : '/';
   const q = order && order !== 'last_post_date' ? `?order=${order}` : '';
   return [
     `${cfg.domain}${clean}${pSeg}${q}`,
@@ -1737,21 +1835,22 @@ seg($('#r-seg'), (v) => { if (R) { R.filter = v; renderReaderPosts(); } });
 function openReader(url, title = '', page = 1) {
   rTok++; const tok = rTok;
   const root = normThread(rebase(url)).replace(/\/+$/, '');
-  R = { url: root, title: title || 'Đang tải…', page, total: 1, opAuthor: '', filter: 'all', posts: [], cache: new Map() };
+  R = { url: root, title: title || 'Đang tải…', page, total: 1, opAuthor: '', filter: 'all', posts: [], cache: new Map(), isArchived: false };
   $('#r-title').textContent = R.title;
   $('#r-sub').textContent = `Trang ${page}`;
   setSeg($('#r-seg'), 'all');
   rdr.hidden = false; document.body.style.overflow = 'hidden';
   pushOv(() => { rTok++; rdr.hidden = true; R = null; });
-  addRecent(root, title); syncReaderSave();
+  addRecent(root + '/', title); syncReaderSave();
   loadReaderPage(tok, page);
 }
 
-async function fetchReaderPageData(root, page) {
+async function fetchReaderPageData(root, page, fallbackTitle = '') {
   if (R && R.cache.has(page)) return R.cache.get(page);
-  const target = page > 1 ? `${root}/page-${page}` : root;
-  const res = await fx(target);
+  const target = page > 1 ? `${root}/page-${page}` : `${root}/`;
+  const res = await fetchThreadWithFallback(target, fallbackTitle, page);
   const parsed = parseThreadPosts(res.html, originOf(res.url) || cfg.domain);
+  parsed.isArchived = res.isArchived;
   if (R) R.cache.set(page, parsed);
   return parsed;
 }
@@ -1763,15 +1862,16 @@ async function loadReaderPage(tok, page) {
   $('#r-pnav').hidden = true;
   $('#r-scroll').scrollTo(0, 0);
   try {
-    const d = await fetchReaderPageData(R.url, page);
+    const d = await fetchReaderPageData(R.url, page, R.title);
     if (!R || tok !== rTok) return;
-    if (d.title) { R.title = d.title; $('#r-title').textContent = d.title; addRecent(R.url, d.title); }
+    if (d.title) { R.title = d.title; $('#r-title').textContent = d.title; addRecent(R.url + '/', d.title); }
     if (d.opAuthor && !R.opAuthor) R.opAuthor = d.opAuthor;
-    R.total = d.last || 1;
+    R.isArchived = !!d.isArchived;
+    R.total = d.isArchived ? 1 : (d.last || 1);
     R.posts = d.posts;
-    saveProg(R.url, R.page, R.total);
+    saveProg(R.url + '/', R.page, R.total);
     renderReaderPosts();
-    if (R.page < R.total) fetchReaderPageData(R.url, R.page + 1).catch(() => {});
+    if (R.page < R.total && !R.isArchived) fetchReaderPageData(R.url, R.page + 1, R.title).catch(() => {});
   } catch (e) {
     if (!R || tok !== rTok) return;
     rList.innerHTML = errHTML(e);
@@ -1785,7 +1885,7 @@ function renderReaderPosts() {
     if (R.filter === 'media') return p.hasMedia;
     return true;
   });
-  $('#r-sub').textContent = `Trang ${R.page}/${R.total} · Chủ thớt: ${R.opAuthor || 'Ẩn danh'}`;
+  $('#r-sub').textContent = `${R.isArchived ? '📦 Bản khôi phục Archive · ' : ''}Trang ${R.page}/${R.total} · Chủ thớt: ${R.opAuthor || 'Ẩn danh'}`;
   $('#r-jump').value = R.page;
   $('#r-total').textContent = `/ ${R.total}`;
   $('#r-prev').disabled = R.page <= 1;
@@ -1863,7 +1963,7 @@ rList.addEventListener('click', (e) => {
 });
 
 $('#r-back').onclick = uiBack;
-$('#r-gal').onclick = () => { if (R) openGallery(R.url, R.title); };
+$('#r-gal').onclick = () => { if (R) openGallery(R.url + '/', R.title); };
 $('#r-save').onclick = () => {
   if (!R) return; const u = normThread(R.url), a = saved();
   if (isSaved(u)) store.set('saved', a.filter((x) => x.url !== u)); else store.set('saved', [{ url: u, title: R.title || u }, ...a]);
@@ -1905,12 +2005,13 @@ async function run(tok) {
   G.state = 'load'; G.err = ''; update();
   try {
     const r = await scrapeThread(G.url, {
+      fallbackTitle: G.title,
       cancelled: () => tok !== gTok,
       onTitle: (t) => { if (tok === gTok && t) { G.title = t; $('#g-title').textContent = t; addRecent(normThread(G.url), t); } },
       onProgress: (list, done, total) => { if (tok !== gTok) return; G.items = list; G.done = done; G.total = total; clearTimeout(gTimer); gTimer = setTimeout(() => update(), 220); },
     });
     if (tok !== gTok) return;
-    G.state = 'done'; G.failed = r.failed; update(r.recovered > 0);
+    G.state = 'done'; G.failed = r.failed; G.isArchived = r.isArchived; update(r.recovered > 0);
   } catch (e) { if (tok !== gTok) return; G.state = e.code === 'CF' ? 'cf' : 'err'; G.err = e.message; update(); }
 }
 
@@ -1952,16 +2053,21 @@ function update(full) {
     G.rendered = G.view.length;
   }
   const nImg = G.items.filter((i) => i.type === 'image').length;
-  $('#g-sub').textContent = `${nImg} ảnh · ${G.items.length - nImg} video` + (G.state === 'load' && G.total ? ` · đang quét trang ${G.done}/${G.total}` : (G.total ? ` · ${G.total} trang` : ''));
+  $('#g-sub').textContent = `${G.isArchived ? '📦 Bản lưu trữ · ' : ''}${nImg} ảnh · ${G.items.length - nImg} video` + (G.state === 'load' && G.total ? ` · đang quét trang ${G.done}/${G.total}` : (G.total ? ` · ${G.total} trang` : ''));
   $('#g-bar').hidden = G.state !== 'load'; $('#g-bar').firstElementChild.style.width = (G.total ? Math.round((G.done / G.total) * 100) : 5) + '%';
   let m = '';
   if (G.state === 'cf') m = `<div class="warn"><i data-ic="alert-triangle"></i><div class="grow"><b>Cloudflare đang chặn</b><p class="muted sm">Máy chủ proxy bị yêu cầu xác thực. Dán cookie <code>cf_clearance</code> ở tab Thêm rồi thử lại.</p><button class="btn sm2" data-act="retry">Thử lại</button></div></div>`;
-  else if (G.state === 'err') m = `<p class="err">${esc(G.err)}</p><button class="btn sm2" data-act="retry">Thử lại</button>`;
-  else if (G.state === 'done' && !G.view.length) m = '<p class="muted" style="text-align:center;margin-top:40px">Không tìm thấy ảnh/video nào trong chủ đề này. Bấm nút 📄 góc trên để đọc chữ.</p>';
+  else if (G.state === 'err') m = `<p class="err">${esc(G.err)}</p><div class="row gap"><button class="btn sm2" data-act="retry">Thử lại</button><button class="btn soft sm2" data-act="read">Thử mở trình đọc chữ</button></div>`;
+  else if (G.state === 'done' && !G.view.length) m = '<p class="muted" style="text-align:center;margin-top:40px">Chủ đề này không có ảnh/video đính kèm. Bấm nút 📄 góc trên bên phải để đọc nội dung chữ.</p><div style="text-align:center"><button class="btn sm2" data-act="read">📄 Đọc bình luận chủ đề này</button></div>';
   else if (G.state === 'done' && G.failed) m = `<p class="kv">${G.failed} trang tải lỗi nên có thể thiếu ảnh. <a href="#" data-act="retry" style="color:var(--brand)">Quét lại</a></p>`;
   gmsg.innerHTML = m; $$('[data-ic]', gmsg).forEach((el) => { el.innerHTML = ic(el.dataset.ic, 22); el.style.display = 'inline-flex'; });
 }
-gmsg.addEventListener('click', (e) => { const a = e.target.closest('[data-act="retry"]'); if (a) { e.preventDefault(); gTok++; const tok = gTok; G.items = []; G.rendered = 0; grid.innerHTML = ''; run(tok); } });
+gmsg.addEventListener('click', (e) => {
+  const retry = e.target.closest('[data-act="retry"]');
+  if (retry) { e.preventDefault(); gTok++; const tok = gTok; G.items = []; G.rendered = 0; grid.innerHTML = ''; run(tok); return; }
+  const readBtn = e.target.closest('[data-act="read"]');
+  if (readBtn && G) { e.preventDefault(); const prog = getProg(G.url); openReader(G.url, G.title, prog ? prog.page : 1); }
+});
 $('#g-back').onclick = uiBack;
 $('#g-read').onclick = () => { if (G) { const prog = getProg(G.url); openReader(G.url, G.title, prog ? prog.page : 1); } };
 $('#g-save').onclick = () => {
