@@ -521,11 +521,22 @@ const set = (k, v) => { cfg[k] = v; store.set(k, v); };
 let jar = store.get('jar', {});
 const toast = (() => { let t; return (m) => { const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2400); }; })();
 
+/* Danh sách toàn bộ các tên miền Xamvn từng hoạt động qua các thời kỳ */
+const XAM_HISTORICAL_DOMAINS = [
+  'xamvn.work', 'xamvn.com', 'xamvn.vc', 'xamvn.id', 'xamvn.gay',
+  'xamvn.xyz', 'xamvn.me', 'xamvn.net', 'xamvn.org', 'xamvn.lol',
+  'xamvn.fun', 'xamvn.win', 'xamvn.biz', 'xamvn.club', 'xamvn.top',
+  'xamvn.pro', 'xamvn.vip', 'xamvn.cc', 'xamvn.tv', 'xamvn.la',
+  'xamvn.sh', 'xamvn.to', 'xamvn.link', 'xamvn.site', 'xamvn.online',
+  'xamvn.icu', 'xamvn.info', 'xamvn.us', 'xamvn.io', 'xamvn.vn',
+  'xamvn.live', 'xamvn.space', 'xamvn.tech', 'xamvn.click', 'xamvl.com'
+];
+
 const hostOf = (u) => String(u).replace(/^https?:\/\//i, '').split(/[/?#]/)[0];
 const originOf = (u) => (String(u).match(/^https?:\/\/[^/]+/i) || [''])[0];
 const isXamUrl = (u) => {
   const h = hostOf(u).toLowerCase();
-  return !h || h === hostOf(cfg.domain).toLowerCase() || /(^|\.)xamvn\./i.test(h);
+  return !h || h === hostOf(cfg.domain).toLowerCase() || /(^|\.)(xamvn|xamvl)\./i.test(h);
 };
 const normThread = (u) => {
   const s = String(u).split('#')[0];
@@ -535,6 +546,8 @@ const normThread = (u) => {
 const threadKey = (u) => {
   const mId = String(u).match(/\/threads\/(?:[^/?#]*\.)?(\d+)/i);
   if (mId) return 'tid_' + mId[1];
+  const mPost = String(u).match(/\/posts\/(\d+)/i);
+  if (mPost) return 'pid_' + mPost[1];
   const m = String(u).match(/\/threads\/([^/?#]+)/i);
   return m ? m[1].toLowerCase() : normThread(u);
 };
@@ -570,7 +583,18 @@ const saveProg = (u, page, total = 1) => {
 };
 
 const parseCk = (s) => Object.fromEntries((s || '').split(';').map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf('='); return i < 0 ? [x, ''] : [x.slice(0, i), x.slice(i + 1)]; }));
-const cookieHeader = () => Object.entries({ ...jar, ...parseCk(cfg.cookie) }).filter(([k, v]) => !k.startsWith('_') && v !== undefined && v !== '').map(([k, v]) => k + '=' + v).join('; ');
+
+/* SỬA LỖI GHI ĐÈ COOKIE: đặt manual (cfg.cookie) trước, jar (cookie mới từ server) sau để xf_csrf và xf_session mới luôn khớp với _xfToken */
+const cookieHeader = () => {
+  const manual = parseCk(cfg.cookie);
+  if (jar.xf_csrf) delete manual.xf_csrf;
+  if (jar.xf_session && (jar.xf_user || manual.xf_user)) delete manual.xf_session;
+  return Object.entries({ ...manual, ...jar })
+    .filter(([k, v]) => !k.startsWith('_') && v !== undefined && v !== '')
+    .map(([k, v]) => k + '=' + v)
+    .join('; ');
+};
+
 const cfErr = () => Object.assign(new Error('Cloudflare đang chặn máy chủ proxy'), { code: 'CF' });
 const isChallenge = (h, st) => /<title>\s*(Just a moment|Attention Required)/i.test(h) || ((st === 403 || st === 503) && /cf-chl|challenge-platform|cloudflare/i.test(h));
 
@@ -593,6 +617,24 @@ const gateFetch = (() => {
   };
 })();
 
+let cachedXfToken = '';
+let cachedCse = null;
+
+const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
+const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
+
+function extractXfToken(html) {
+  if (!html) return '';
+  return (html.match(/data-csrf="([^"]+)"/) || [])[1]
+    || (html.match(/name="_xfToken"\s+value="([^"]+)"/) || [])[1]
+    || (html.match(/csrf:\s*'([^']+)'/) || [])[1]
+    || '';
+}
+
+function isLoggedInHtml(html) {
+  return /data-logged-in="true"|p-navgroup-link--user|account\/visitor-menu/i.test(html || '');
+}
+
 async function fx(url, { method = 'GET', body, contentType, allowErrorStatus = false } = {}) {
   let r;
   try {
@@ -609,34 +651,24 @@ async function fx(url, { method = 'GET', body, contentType, allowErrorStatus = f
   let j;
   try { j = await r.json(); } catch { throw new Error('Proxy trả dữ liệu lạ (HTTP ' + r.status + '). Hãy kiểm tra thư mục api/ đã được deploy chưa.'); }
   if (!r.ok) throw new Error(j.error || 'Proxy lỗi HTTP ' + r.status);
-  if (isXamUrl(url) && j.cookies && typeof j.cookies === 'object') {
-    for (const [k, v] of Object.entries(j.cookies)) {
-      if (v === 'deleted') delete jar[k];
-      else if (v) jar[k] = v;
+  if (isXamUrl(url)) {
+    if (j.cookies && typeof j.cookies === 'object') {
+      for (const [k, v] of Object.entries(j.cookies)) {
+        if (v === 'deleted') delete jar[k];
+        else if (v) jar[k] = v;
+      }
+      store.set('jar', jar);
     }
-    store.set('jar', jar);
+    const freshTok = extractXfToken(j.html || '');
+    if (freshTok) cachedXfToken = freshTok;
+    if (isLoggedInHtml(j.html || '')) {
+      jar._authed = '1';
+      store.set('jar', jar);
+    }
   }
   if (isChallenge(j.html || '', j.status)) throw cfErr();
   if (!allowErrorStatus && j.status >= 400) throw new Error('Máy chủ trả về HTTP ' + j.status);
   return { html: j.html || '', url: j.url || url, status: j.status || 200 };
-}
-
-const dp = (h) => new DOMParser().parseFromString(h, 'text/html');
-const VID = /\.(mp4|m4v|mov|webm|m3u8)(\?|#|$)/i;
-
-function extractXfToken(html) {
-  if (!html) return '';
-  const d = dp(html);
-  return d.querySelector('input[name="_xfToken"]')?.value
-    || d.querySelector('html')?.dataset?.csrf
-    || (html.match(/name="_xfToken"\s+value="([^"]+)"/) || [])[1]
-    || (html.match(/data-csrf="([^"]+)"/) || [])[1]
-    || (html.match(/csrf:\s*'([^']+)'/) || [])[1]
-    || '';
-}
-
-function isLoggedInHtml(html) {
-  return /p-navgroup-link--user|data-logged-in="true"|account\/visitor-menu/i.test(html || '');
 }
 
 function parsePage(html, base, pageNum = 1) {
@@ -673,10 +705,18 @@ function parsePage(html, base, pageNum = 1) {
   return { media, last, title: t ? t.textContent.replace(/\s+/g, ' ').trim() : '' };
 }
 
+/* SỬA LỖI BỘ CHỌN TRONG parseList: Không lấy nhầm thẻ .labelLink (Prefix) làm rớt bài viết tìm kiếm */
 function parseList(html, base) {
   const d = dp(html), out = [], seen = new Set();
   d.querySelectorAll('.structItem--thread, .contentRow, .block-row').forEach((row) => {
-    const a = row.querySelector('.structItem-title a[href*="/threads/"], .structItem-title a[href*="/posts/"], .structItem-title a:not(.labelLink), .contentRow-title a, h3.contentRow-title a, h3 a[href*="/threads/"], h3 a[href*="/posts/"]');
+    const a = row.querySelector(
+      '.structItem-title a[href*="/threads/"]:not(.labelLink), ' +
+      '.structItem-title a[href*="/posts/"]:not(.labelLink), ' +
+      '.contentRow-title a[href*="/threads/"]:not(.labelLink), ' +
+      '.contentRow-title a[href*="/posts/"]:not(.labelLink), ' +
+      'h3.contentRow-title a:not(.labelLink), ' +
+      '.structItem-title a:not(.labelLink)'
+    );
     if (!a) return;
     const h = abs(a.getAttribute('href'), base);
     if (!h || !/\/(threads|posts)\//i.test(h) || !isXamUrl(h)) return;
@@ -817,6 +857,7 @@ function parseThreadPosts(html, base) {
   });
   return { title, opAuthor, last, posts };
 }
+
 const imgApi = () => cfg.proxy.replace(/proxy$/, 'img');
 const srcFor = (u, m) => m === 'direct' ? u
   : m === 'wsrv' ? 'https://wsrv.nl/?url=' + encodeURIComponent(u)
@@ -851,20 +892,17 @@ async function scrapeThread(input, { cancelled, onTitle, onProgress }) {
   return { failed: bad.length - recovered, recovered };
 }
 
-/* ───────── TỰ ĐỘNG ĐĂNG NHẬP & GIỮ PHIÊN XENFORO 2 ───────── */
+/* ───────── TỰ ĐỘNG ĐĂNG NHẬP & ĐỒNG BỘ XF_USER + CSRF TOKEN ───────── */
 const AUTO_AUTH = {
   get login() { return cfg.login; },
   get password() { return cfg.password; }
 };
 let authPromise = null;
-let cachedXfToken = '';
-let cachedCse = null;
 
 async function ensureAuth(force = false) {
   if (!force && cachedXfToken && (jar.xf_user || cfg.cookie.includes('xf_user=') || jar._authed)) {
     return cachedXfToken;
   }
-  // Không có tài khoản thì khỏi thử đăng nhập lại mỗi lần
   if (!force && cachedXfToken && !AUTO_AUTH.login) return cachedXfToken;
   if (authPromise) return authPromise;
 
@@ -893,14 +931,22 @@ async function ensureAuth(force = false) {
 
       if (!token || !AUTO_AUTH.login || !AUTO_AUTH.password) return cachedXfToken;
 
+      // Xóa xf_csrf tĩnh trong cfg.cookie nếu người dùng lỡ dán vào để không làm hỏng phiên đăng nhập
+      const manualCk = parseCk(cfg.cookie);
+      if (manualCk.xf_csrf) {
+        delete manualCk.xf_csrf;
+        set('cookie', Object.entries(manualCk).map(([k, v]) => `${k}=${v}`).join('; '));
+        if ($('#set-cookie')) $('#set-cookie').value = cfg.cookie;
+      }
+
       const params = new URLSearchParams();
       params.set('login', AUTO_AUTH.login);
       params.set('password', AUTO_AUTH.password);
       params.set('remember', '1');
       params.set('_xfRedirect', `${cfg.domain}/`);
       params.set('_xfToken', token);
-      params.set('_xfResponseType', 'json');
 
+      // Gửi POST chuẩn để proxy tự theo redirect 303 và nhận xf_user + xf_session mới
       const res = await fx(`${cfg.domain}/login/login`, {
         method: 'POST',
         contentType: 'application/x-www-form-urlencoded',
@@ -908,14 +954,26 @@ async function ensureAuth(force = false) {
         allowErrorStatus: true,
       });
 
-      const verify = await fx(`${cfg.domain}/`);
-      const newToken = extractXfToken(verify.html);
+      const newToken = extractXfToken(res.html);
       if (newToken) cachedXfToken = newToken;
 
-      if (isLoggedInHtml(verify.html) || jar.xf_user || res.html.includes('"status":"ok"')) {
+      if (isLoggedInHtml(res.html) || jar.xf_user) {
         jar._authed = '1';
         store.set('jar', jar);
+        if (jar.xf_user) {
+          const ck = parseCk(cfg.cookie);
+          ck.xf_user = jar.xf_user;
+          delete ck.xf_csrf;
+          set('cookie', Object.entries(ck).map(([k, v]) => `${k}=${v}`).join('; '));
+          if ($('#set-cookie')) $('#set-cookie').value = cfg.cookie;
+        }
         return cachedXfToken;
+      }
+
+      const verify = await fx(`${cfg.domain}/`);
+      if (isLoggedInHtml(verify.html) || jar.xf_user) {
+        jar._authed = '1';
+        store.set('jar', jar);
       }
       return cachedXfToken;
     } catch (e) {
@@ -929,17 +987,18 @@ async function ensureAuth(force = false) {
   return authPromise;
 }
 
-/* ───────── TÌM KIẾM TRỰC TIẾP XAMVN (XENFORO + GOOGLE CSE /google-search/ + TAGS) ───────── */
+/* ───────── TÌM KIẾM ĐA TẦNG: XENFORO TRỰC TIẾP + WAYBACK 35 DOMAINS + WEB INDEX + TAGS ───────── */
 async function searchForum({ q, by, exact, order }) {
   const kw = q.trim();
   const queryTerm = exact ? `"${kw}"` : kw;
   const seen = new Set(), out = [];
   let xfCount = 0, extCount = 0;
 
-  const rmTone = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim();
+  const rmTone = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
   const kNorm = rmTone(kw);
-  const kWords = kNorm.split(/\s+/).filter(Boolean);
-  const tagSlug = kNorm.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const kTokens = kNorm.split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
+  const kCompact = kTokens.join('');
+  const tagSlug = kTokens.join('-');
 
   const cleanSearchTitle = (raw) => {
     let t = String(raw || '').replace(/\s+/g, ' ').trim();
@@ -948,6 +1007,27 @@ async function searchForum({ q, by, exact, order }) {
     t = t.replace(/^[a-z0-9.-]+\.[a-z]{2,}\s*›\s*threads\s*›\s*\d+/i, '');
     t = t.replace(/\s*[|-]\s*(?:Page\s*\d+\s*[|-]\s*)?(?:Xamvn|Diễn đàn Xàm).*$/i, '');
     return t.trim();
+  };
+
+  const slugToTitle = (slug) => {
+    try {
+      return decodeURIComponent(slug)
+        .replace(/\.\d+$/, '')
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    } catch {
+      return slug;
+    }
+  };
+
+  // Kiểm tra mức độ liên quan để loại bỏ kết quả rác ("Thông báo Xamvn bị chặn...", "CI NGOẠI") khi quét máy tìm kiếm ngoài
+  const isRelevantToQuery = (title, url, snippet) => {
+    if (!kTokens.length) return true;
+    const hay = rmTone(`${title} ${url} ${snippet}`);
+    if (hay.includes(kNorm)) return true;
+    if (kCompact.length >= 4 && hay.replace(/[^a-z0-9]/g, '').includes(kCompact)) return true;
+    const matchedCount = kTokens.filter((tk) => hay.includes(tk)).length;
+    return matchedCount >= Math.max(1, Math.ceil(kTokens.length * 0.6));
   };
 
   if (/^https?:\/\/[^/]+\/threads\//i.test(kw) || /^\/?threads\//i.test(kw)) {
@@ -986,8 +1066,8 @@ async function searchForum({ q, by, exact, order }) {
     return added;
   };
 
-  const pushRawLink = (rawUrl, rawTitle, snippet = '', meta = '') => {
-    if (!rawUrl || !rawTitle) return;
+  const pushRawLink = (rawUrl, rawTitle, snippet = '', meta = '', enforceRelevance = true) => {
+    if (!rawUrl) return;
     let u = rawUrl.trim();
     const mRU = u.match(/\/RU=([^/]+)\/RK=/i) || u.match(/[?&](?:uddg|url|q|u)=([^&]+)/i);
     if (mRU && !u.includes('u=a1')) {
@@ -1002,10 +1082,16 @@ async function searchForum({ q, by, exact, order }) {
 
     const cleanUrl = normThread(rebase(u));
     const key = threadKey(cleanUrl);
-    const cleanTitle = cleanSearchTitle(rawTitle);
-    if (!cleanTitle || cleanTitle.length < 2 || seen.has(key)) return;
-    seen.add(key);
+    if (seen.has(key)) return;
 
+    const mSlug = cleanUrl.match(/\/threads\/([^/?#]+)/i);
+    const fallbackTitle = mSlug ? slugToTitle(mSlug[1]) : cleanUrl;
+    const cleanTitle = cleanSearchTitle(rawTitle) || fallbackTitle;
+    if (!cleanTitle || cleanTitle.length < 2) return;
+
+    if (enforceRelevance && !isRelevantToQuery(cleanTitle, cleanUrl, snippet)) return;
+
+    seen.add(key);
     out.push({
       url: cleanUrl,
       title: cleanTitle,
@@ -1018,9 +1104,171 @@ async function searchForum({ q, by, exact, order }) {
     extCount++;
   };
 
-  let xfToken = await ensureAuth(false);
+  await ensureAuth(false);
 
-  // ── LUỒNG 0: GOOGLE CSE NHÚNG TRÊN XAMVN (/google-search/?q=...) ──
+  // ── LUỒNG 1: TÌM KIẾM TRỰC TIẾP TRÊN XENFORO 2 (CÓ DẤU + KHÔNG DẤU) ──
+  const harvestXfSearchUrl = async (searchPageUrl, initialHtml = '', queryUsed = queryTerm) => {
+    const base = cfg.domain;
+    const firstHtml = initialHtml || (await fx(rebase(searchPageUrl))).html;
+    const p1 = parseList(firstHtml, base);
+    addListItems(p1.list, true);
+
+    const d = dp(firstHtml);
+    const navHref = d.querySelector('.pageNav a[href*="/search/"]')?.getAttribute('href') || searchPageUrl;
+    const sMatch = String(navHref).match(/(\/search\/\d+\/)/i) || String(firstHtml).match(/(\/search\/\d+\/)/i);
+
+    if (sMatch && p1.last > 1) {
+      const searchPath = sMatch[1];
+      const maxP = Math.min(p1.last, 5);
+      const qStr = `q=${encodeURIComponent(queryUsed)}&o=${encodeURIComponent(order || 'relevance')}${by === 'thread' ? '&c[title_only]=1' : ''}`;
+      const pagePromises = [];
+      for (let p = 2; p <= maxP; p++) {
+        pagePromises.push(fx(`${cfg.domain}${searchPath}?page=${p}&${qStr}`));
+      }
+      const pages = await Promise.allSettled(pagePromises);
+      for (const mp of pages) {
+        if (mp.status === 'fulfilled') addListItems(parseList(mp.value.html, base).list, true);
+      }
+    }
+
+    if (p1.olderUrl && xfCount < 60) {
+      try {
+        const olderRes = await fx(rebase(p1.olderUrl));
+        addListItems(parseList(olderRes.html, base).list, true);
+      } catch {}
+    }
+  };
+
+  const runSingleXfQuery = async (searchKw, ord = order || 'relevance') => {
+    // Đảm bảo có _xfToken mới nhất khớp với cookie hiện tại
+    if (!cachedXfToken) {
+      const sForm = await fx(`${cfg.domain}/search/`, { allowErrorStatus: true });
+      cachedXfToken = extractXfToken(sForm.html);
+    }
+
+    const buildForm = (token, isJson) => {
+      const p = new URLSearchParams();
+      if (by === 'author') {
+        p.set('c[users]', searchKw);
+      } else {
+        p.set('keywords', searchKw);
+        if (by === 'thread') p.set('c[title_only]', '1');
+      }
+      p.set('order', ord);
+      p.set('search_type', '');
+      if (token) p.set('_xfToken', token);
+      if (isJson) p.set('_xfResponseType', 'json');
+      return p.toString();
+    };
+
+    // Thử POST chuẩn trước (proxy tự theo 303 Redirect sang trang kết quả /search/ID/)
+    let res = await fx(`${cfg.domain}/search/search`, {
+      method: 'POST',
+      contentType: 'application/x-www-form-urlencoded',
+      body: buildForm(cachedXfToken, false),
+      allowErrorStatus: true,
+    });
+
+    // Nếu bị lỗi CSRF (status 400/403), làm mới token từ /search/ và thử lại ngay
+    if (res.status >= 400 || (!res.html.includes('structItem') && !res.html.includes('contentRow'))) {
+      const freshForm = await fx(`${cfg.domain}/search/`, { allowErrorStatus: true });
+      const freshToken = extractXfToken(freshForm.html);
+      if (freshToken) {
+        cachedXfToken = freshToken;
+        res = await fx(`${cfg.domain}/search/search`, {
+          method: 'POST',
+          contentType: 'application/x-www-form-urlencoded',
+          body: buildForm(cachedXfToken, true),
+          allowErrorStatus: true,
+        });
+      }
+    }
+
+    try {
+      const parsedJson = JSON.parse(res.html);
+      if (parsedJson.redirect) {
+        await harvestXfSearchUrl(abs(parsedJson.redirect, cfg.domain), '', searchKw);
+        return;
+      }
+    } catch {}
+
+    if (res.html.includes('structItem') || res.html.includes('contentRow')) {
+      await harvestXfSearchUrl(res.url || `${cfg.domain}/search/`, res.html, searchKw);
+    }
+  };
+
+  const taskXenForo = (async () => {
+    try {
+      await runSingleXfQuery(queryTerm, order || 'relevance');
+      // Nếu tìm có dấu ít kết quả và từ khóa có dấu tiếng Việt, tự tìm thêm bản không dấu trên XenForo
+      if (by !== 'author' && !exact && kNorm !== kw.toLowerCase() && xfCount < 15) {
+        await runSingleXfQuery(kNorm, order || 'relevance');
+      }
+      // Nếu order='relevance' trả về rỗng, tự thử lại với order='date'
+      if (xfCount === 0 && order !== 'date') {
+        await runSingleXfQuery(queryTerm, 'date');
+      }
+    } catch (e) {
+      console.warn('XenForo search error:', e.message);
+    }
+  })();
+
+  // ── LUỒNG 2: QUÉT KHO LƯU TRỮ WAYBACK MACHINE CDX TRÊN 35+ TÊN MIỀN CŨ ──
+  const taskWaybackCDX = (async () => {
+    if (by === 'author' || !kTokens.length) return;
+    // Tạo bộ lọc regex đa từ khóa: bắt được cả từ cách xa nhau lẫn viết liền
+    const filterStr = kTokens.map((tk) => `filter=${encodeURIComponent(`original:.*${tk}.*`)}`).join('&');
+    const allDomains = [...new Set([
+      hostOf(cfg.domain).toLowerCase(),
+      ...(Array.isArray(cfg.fallbacks) ? cfg.fallbacks.map((d) => hostOf(d).toLowerCase()) : []),
+      ...XAM_HISTORICAL_DOMAINS
+    ])].filter(Boolean);
+
+    const queue = [...allDomains];
+    const parseCdxRows = (rows, dom) => {
+      for (let i = 1; i < rows.length; i++) {
+        const rawUrl = rows[i]?.[0];
+        const m = String(rawUrl || '').match(/\/threads\/([^/?#]+)/i);
+        if (!m) continue;
+        const slug = m[1].replace(/\/$/, '');
+        if (/^page-\d+$/i.test(slug)) continue;
+        const title = slugToTitle(slug);
+        pushRawLink(
+          `${cfg.domain}/threads/${slug}/`,
+          title,
+          `Khôi phục từ tên miền cũ ${dom}`,
+          `Kho lưu trữ (${dom})`,
+          false
+        );
+      }
+    };
+
+    const cdxWorker = async () => {
+      while (queue.length) {
+        const dom = queue.shift();
+        const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${dom}/threads/*&output=json&fl=original&collapse=urlkey&limit=45&${filterStr}`;
+        try {
+          const r = await fetch(cdxUrl, { signal: AbortSignal.timeout(7500) });
+          if (r.ok) {
+            const rows = await r.json();
+            parseCdxRows(rows, dom);
+            continue;
+          }
+        } catch {}
+        // Fallback qua proxy nếu trình duyệt chặn kết nối trực tiếp tới archive.org
+        try {
+          const pr = await fx(cdxUrl, { allowErrorStatus: true });
+          if (pr.status === 200 && pr.html.startsWith('[')) {
+            parseCdxRows(JSON.parse(pr.html), dom);
+          }
+        } catch {}
+      }
+    };
+
+    await Promise.all(Array.from({ length: 6 }, () => cdxWorker()));
+  })();
+
+  // ── LUỒNG 3: GOOGLE CSE NHÚNG TRÊN XAMVN (/google-search/?q=...) ──
   const taskGoogleCSE = (async () => {
     if (by === 'author') return;
     try {
@@ -1049,96 +1297,13 @@ async function searchForum({ q, by, exact, order }) {
         let data;
         try { data = JSON.parse(jsonMatch[1]); } catch { continue; }
         for (const item of (data.results || [])) {
-          pushRawLink(item.unescapedUrl || item.url, item.titleNoFormatting || item.title, item.contentNoFormatting || item.content, 'Google Search Xamvn');
+          pushRawLink(item.unescapedUrl || item.url, item.titleNoFormatting || item.title, item.contentNoFormatting || item.content, 'Google Search Xamvn', false);
         }
       }
     } catch {}
   })();
 
-  // ── LUỒNG 1: TÌM TRỰC TIẾP TRÊN XENFORO 2 ──
-  const harvestXfSearchUrl = async (searchPageUrl, initialHtml = '') => {
-    const base = cfg.domain;
-    const firstHtml = initialHtml || (await fx(rebase(searchPageUrl))).html;
-    const p1 = parseList(firstHtml, base);
-    addListItems(p1.list, true);
-
-    const d = dp(firstHtml);
-    const navHref = d.querySelector('.pageNav a[href*="/search/"]')?.getAttribute('href') || searchPageUrl;
-    const sMatch = String(navHref).match(/(\/search\/\d+\/)/i) || String(firstHtml).match(/(\/search\/\d+\/)/i);
-
-    if (sMatch && p1.last > 1) {
-      const searchPath = sMatch[1];
-      const maxP = Math.min(p1.last, 6);
-      const qStr = `q=${encodeURIComponent(queryTerm)}&o=${encodeURIComponent(order || 'relevance')}${by === 'thread' ? '&c[title_only]=1' : ''}`;
-      const pagePromises = [];
-      for (let p = 2; p <= maxP; p++) {
-        pagePromises.push(fx(`${cfg.domain}${searchPath}?page=${p}&${qStr}`));
-      }
-      const pages = await Promise.allSettled(pagePromises);
-      for (const mp of pages) {
-        if (mp.status === 'fulfilled') addListItems(parseList(mp.value.html, base).list, true);
-      }
-    }
-
-    if (p1.olderUrl && xfCount < 60) {
-      try {
-        const olderRes = await fx(rebase(p1.olderUrl));
-        addListItems(parseList(olderRes.html, base).list, true);
-      } catch {}
-    }
-  };
-
-  const taskXenForo = (async () => {
-    try {
-      const buildParams = (isJson) => {
-        const p = new URLSearchParams();
-        if (by === 'author') {
-          p.set('c[users]', kw);
-        } else {
-          p.set('keywords', queryTerm);
-          if (by === 'thread') p.set('c[title_only]', '1');
-        }
-        p.set('order', order || 'relevance');
-        p.set('search_type', '');
-        if (xfToken) p.set('_xfToken', xfToken);
-        if (isJson) p.set('_xfResponseType', 'json');
-        return p;
-      };
-
-      const jsonRes = await fx(`${cfg.domain}/search/search`, {
-        method: 'POST',
-        contentType: 'application/x-www-form-urlencoded',
-        body: buildParams(true).toString(),
-        allowErrorStatus: true,
-      });
-
-      let redirectUrl = '';
-      try {
-        const parsedJson = JSON.parse(jsonRes.html);
-        if (parsedJson.redirect) redirectUrl = parsedJson.redirect;
-      } catch {
-        if (jsonRes.html.includes('structItem') || jsonRes.html.includes('contentRow')) {
-          await harvestXfSearchUrl(jsonRes.url || `${cfg.domain}/search/`, jsonRes.html);
-          return;
-        }
-      }
-
-      if (redirectUrl) {
-        await harvestXfSearchUrl(abs(redirectUrl, cfg.domain));
-        return;
-      }
-
-      const getUrl = `${cfg.domain}/search/search?${buildParams(false).toString()}`;
-      const getRes = await fx(getUrl, { allowErrorStatus: true });
-      if (getRes.html.includes('structItem') || getRes.html.includes('contentRow')) {
-        await harvestXfSearchUrl(getRes.url || getUrl, getRes.html);
-      }
-    } catch (e) {
-      console.warn('XenForo search error:', e.message);
-    }
-  })();
-
-  // ── LUỒNG 2: TÌM QUA TAGS (/tags/...) ──
+  // ── LUỒNG 4: TÌM QUA TAGS (/tags/...) ──
   const taskTags = (async () => {
     if (!tagSlug || by === 'author') return;
     try {
@@ -1158,17 +1323,18 @@ async function searchForum({ q, by, exact, order }) {
     } catch {}
   })();
 
-  // ── LUỒNG 3: CÔNG CỤ TÌM KIẾM NGOÀI (CHỈ CHẠY KHI CÒN ÍT KẾT QUẢ) ──
-  const runExternal = () => (async () => {
-    const q1 = `site:xamvn.* "${kw}" threads`;
+  // ── LUỒNG 5: QUÉT CHỈ MỤC TÌM KIẾM WEB (BẮT MỌI DOMAIN XAMVN.* & TIẾNG VIỆT CÓ DẤU) ──
+  const taskExternalWeb = (async () => {
+    if (by === 'author') return;
+    const q1 = `inurl:threads xamvn ${queryTerm}`;
     const q2 = `${queryTerm} xamvn threads`;
-    const q3 = `"${kNorm}" xamvn threads`;
+    const q3 = `"${tagSlug}" xamvn threads`;
 
     const seUrls = [
-      `https://search.yahoo.com/search?p=${encodeURIComponent(q2)}&n=40&b=1`,
+      `https://search.yahoo.com/search?p=${encodeURIComponent(q1)}&n=40&b=1`,
       `https://uk.search.yahoo.com/search?p=${encodeURIComponent(q3)}&n=40&b=1`,
       `https://search.brave.com/search?q=${encodeURIComponent(q2)}&source=web`,
-      `https://www.bing.com/search?q=${encodeURIComponent(q2)}&count=50&first=1`,
+      `https://www.bing.com/search?q=${encodeURIComponent(q1)}&count=50&first=1`,
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q1)}`
     ];
 
@@ -1176,22 +1342,23 @@ async function searchForum({ q, by, exact, order }) {
     for (const res of seResponses) {
       if (res.status !== 'fulfilled' || !res.value.html) continue;
       const d = dp(res.value.html);
-      d.querySelectorAll('a[href*="/threads/"], a[href*="%2Fthreads%2F"], h3 a[href], h2 a[href], a.result__a').forEach((a) => {
-        const href = a.getAttribute('href');
+      // Duyệt mọi thẻ a[href] không phân biệt hoa thường %2fthreads%2f
+      d.querySelectorAll('a[href]').forEach((a) => {
+        const href = a.getAttribute('href') || '';
+        if (!/(\/|%2f)(threads|posts)(\/|%2f)/i.test(href) && !/RU=.*threads/i.test(href) && !/uddg=.*threads/i.test(href) && !/u=a1/i.test(href)) return;
         const titleEl = a.querySelector('h3, .title, .fc-emerald') || a;
         const text = titleEl.textContent.replace(/\s+/g, ' ').trim();
         const row = a.closest('div, li, tr');
         const snEl = row ? row.querySelector('.compText, .result__snippet, .snippet-description, p') : null;
         const snippet = snEl ? snEl.textContent.replace(/\s+/g, ' ').trim() : '';
-        if (text.length > 3) pushRawLink(href, text, snippet, 'Kho lưu trữ Xamvn');
+        if (text.length > 2) pushRawLink(href, text, snippet, 'Kho lưu trữ Xamvn', true);
       });
     }
   })();
 
-  await Promise.allSettled([taskGoogleCSE, taskXenForo, taskTags]);
-  if (by !== 'author' && out.length < 15) await runExternal().catch(() => {});
+  await Promise.allSettled([taskXenForo, taskWaybackCDX, taskGoogleCSE, taskTags, taskExternalWeb]);
 
-  if (out.length < 15) {
+  if (out.length < 10) {
     try {
       const scanUrls = [
         `${cfg.domain}/whats-new/posts/`,
@@ -1205,7 +1372,7 @@ async function searchForum({ q, by, exact, order }) {
         const { list } = parseList(p.value.html, originOf(p.value.url) || cfg.domain);
         const matched = list.filter((x) => {
           const hay = rmTone(`${x.title} ${x.author || ''} ${x.meta || ''} ${x.prefix || ''}`);
-          return exact ? hay.includes(kNorm) : kWords.every((w) => hay.includes(w));
+          return exact ? hay.includes(kNorm) : kTokens.every((w) => hay.includes(w));
         });
         addListItems(matched, true);
       }
@@ -1217,6 +1384,7 @@ async function searchForum({ q, by, exact, order }) {
   }
   return { list: out, xfCount, extCount };
 }
+
 let latestPath = '/whats-new/posts/';
 async function fetchLatest(customPath) {
   let lastErr;
@@ -1304,8 +1472,9 @@ async function doSearch() {
   btn.disabled = true; btn.innerHTML = '<div class="spin"></div>'; res.innerHTML = spinHTML;
   try {
     const { list, xfCount, extCount } = await searchForum({ q, by: segBy.dataset.v === 'au' ? 'author' : segScope.dataset.v, exact: segMatch.dataset.v === 'exact', order });
-    const note = xfCount === 0
-      ? `<div class="warn" style="margin-bottom:12px;padding:10px 14px"><div class="grow sm"><b>Lưu ý:</b> Tìm kiếm nội bộ Xamvn đang yêu cầu Cookie tài khoản (<code>xf_user</code>). Hãy vào tab <b>Thêm → Proxy &amp; Cloudflare</b> dán cookie <code>xf_user</code> để mở khóa hàng trăm kết quả gốc từ Xamvn.</div></div>`
+    const hasAuth = !!(jar.xf_user || cfg.cookie.includes('xf_user=') || jar._authed);
+    const note = (xfCount === 0 && !hasAuth)
+      ? `<div class="warn" style="margin-bottom:12px;padding:10px 14px"><div class="grow sm"><b>Lưu ý:</b> Tìm kiếm nội bộ Xamvn đang yêu cầu đăng nhập hoặc Cookie <code>xf_user</code>. Hãy vào tab <b>Thêm → Proxy &amp; Cloudflare</b> để đăng nhập hoặc dán cookie <code>xf_user</code>.</div></div>`
       : '';
     res.innerHTML = `<p class="muted sm" style="padding:0 4px 10px">Tìm thấy <b>${list.length}</b> chủ đề (${xfCount} trực tiếp từ Xamvn · ${extCount} từ kho lưu trữ)</p>` + note + list.map(rowHTML).join('');
   } catch (e) { res.innerHTML = errHTML(e); }
